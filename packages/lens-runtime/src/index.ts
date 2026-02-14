@@ -30,7 +30,11 @@ export class LensRuntime {
     return nextFrame;
   }
 
-  static async create(plugin: LensPlugin, host: HostBindings, limits: RuntimeLimits): Promise<LensRuntime> {
+  static async create(
+    plugin: LensPlugin,
+    host: HostBindings,
+    limits: RuntimeLimits
+  ): Promise<LensRuntime> {
     if (plugin.init) {
       await plugin.init(host);
     }
@@ -38,3 +42,14 @@ export class LensRuntime {
     return new LensRuntime(plugin, host, limits);
   }
 }
+
+export {
+  applyDeltaU,
+  computeLensTransitionContext,
+  transitionLens,
+  type DecodedLensState,
+  type LensMappingRegistry,
+  type LensMappingRule,
+  type LensTransitionContext,
+  type LensTransitionResult
+} from './transition.js';
