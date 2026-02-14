@@ -7,5 +7,12 @@
     "outDir": "dist"
   },
   "include": ["src"],
-  "references": [{ "path": "../../packages/core-schema" }]
+  "references": [
+    {
+      "path": "../../packages/core-schema"
+    },
+    {
+      "path": "../../packages/lens-runtime"
+    }
+  ]
 }

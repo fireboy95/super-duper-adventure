@@ -1,5 +1,5 @@
-import { parseFrame, type UFrame } from '@adventure/core-schema';
-import { LensRuntime } from '@adventure/lens-runtime';
+import { parseFrame, parseUniverseState, type UFrame } from '@adventure/core-schema';
+import { LensRuntime, transitionLens, type LensMappingRegistry } from '@adventure/lens-runtime';
 import { createWebSocketLobby } from '@adventure/net';
 import type { HostBindings, LensPlugin } from '@adventure/plugin-api';
 
@@ -17,6 +17,39 @@ const passThroughLens: LensPlugin = {
   }
 };
 
+const transitionRegistry: LensMappingRegistry = {
+  decodeMap: {
+    'builtin/pass-through': (input, context) => ({
+      frame: input.frame,
+      state: {
+        frameTick: input.frame.tick,
+        priorLens: context.fromLensId
+      },
+      outcomes: {
+        entityCount: input.frame.entities.length,
+        transitionedAtTick: input.tick
+      }
+    })
+  },
+  encodeMap: {
+    'lens/combat': (decoded, context) => ({
+      tick: context.tick + 1,
+      lensStates: {
+        [context.toLensId]: {
+          ...((decoded.state as Record<string, unknown>) ?? {}),
+          mode: 'combat'
+        }
+      },
+      lensOutcomes: {
+        [context.toLensId]: {
+          ...((decoded.outcomes as Record<string, unknown>) ?? {}),
+          damagePreview: 0
+        }
+      }
+    })
+  }
+};
+
 export async function bootstrapHostServer(): Promise<void> {
   const lobby = createWebSocketLobby();
   await lobby.join('default', 'host');
@@ -27,10 +60,26 @@ export async function bootstrapHostServer(): Promise<void> {
     deterministicSeed: 42
   });
 
-  const initialFrame = parseFrame({ tick: 0, entities: [] });
-  await runtime.runFrame(initialFrame);
+  const baselineU = parseUniverseState({
+    tick: 0,
+    activeLensId: 'builtin/pass-through',
+    frame: { tick: 0, entities: [] },
+    anchors: {
+      hp: 100,
+      inventory: ['torch', 'potion'],
+      relics: ['sun-stone'],
+      flags: { tutorialComplete: true }
+    },
+    lensStates: {
+      'builtin/pass-through': {}
+    },
+    lensOutcomes: {}
+  });
 
-  console.log('Host server initialized with authoritative run-state runtime.');
+  const transitioned = transitionLens(baselineU, 'lens/combat', transitionRegistry);
+  await runtime.runFrame(transitioned.nextU.frame);
+
+  console.log('Host server initialized with authoritative run-state runtime and lens transitions.');
 }
 
 void bootstrapHostServer();
