@@ -1,0 +1,51 @@
+package adventure:plugin-api@1.0.0;
+
+/// Plugin lifecycle and deterministic execution contract.
+interface plugin-lifecycle {
+  record resource-budgets {
+    max-update-ms: u32,
+    max-decode-ms: u32,
+    max-encode-ms: u32,
+    max-heap-mb: u32,
+  }
+
+  record manifest-v1 {
+    api-version: string,
+    lens-id: string,
+    capabilities: list<string>,
+    resource-budgets: resource-budgets,
+  }
+
+  enum error-code {
+    init-error,
+    decode-error,
+    update-error,
+    render-error,
+    encode-error,
+    shutdown-error,
+    timeout-error,
+    manifest-incompatible,
+  }
+
+  variant deterministic-value {
+    null,
+    bool(bool),
+    int(s64),
+    float(float64),
+    text(string),
+    list(list<deterministic-value>),
+    record(list<tuple<string, deterministic-value>>),
+  }
+
+  /// Deterministic lifecycle
+  init: func(ctx-manifest: manifest-v1) -> result<_, error-code>;
+  decode: func(raw-frame: deterministic-value) -> result<deterministic-value, error-code>;
+  update: func(input: deterministic-value, dt-ms: float64) -> result<_, error-code>;
+  render: func() -> result<option<deterministic-value>, error-code>;
+  encode: func() -> result<deterministic-value, error-code>;
+  shutdown: func() -> result<_, error-code>;
+}
+
+world plugin-api-v1 {
+  export plugin-lifecycle;
+}

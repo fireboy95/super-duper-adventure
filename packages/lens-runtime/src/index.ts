@@ -1,5 +1,12 @@
 import type { UFrame } from '@adventure/core-schema';
-import type { HostBindings, LensPlugin } from '@adventure/plugin-api';
+import {
+  assertManifestCompatibility,
+  type HostDeterministicContext,
+  type LensPluginV1,
+  type PluginCompatibilityRequirements,
+  type TimeoutSemantics,
+  createHostLifecycleBindings
+} from '@adventure/plugin-api';
 
 export interface RuntimeLimits {
   maxFrameMs: number;
@@ -7,20 +14,20 @@ export interface RuntimeLimits {
   deterministicSeed: number;
 }
 
-export interface RuntimeHandle {
-  runFrame(frame: UFrame): Promise<UFrame>;
-}
-
 export class LensRuntime {
   constructor(
-    private readonly plugin: LensPlugin,
-    private readonly host: HostBindings,
-    private readonly limits: RuntimeLimits
+    private readonly plugin: LensPluginV1,
+    private readonly host: HostDeterministicContext,
+    private readonly limits: RuntimeLimits,
+    private readonly timeouts: Partial<TimeoutSemantics> = {}
   ) {}
 
   async runFrame(frame: UFrame): Promise<UFrame> {
     const start = performance.now();
-    const nextFrame = await this.plugin.onFrame(frame, this.host);
+    const lifecycle = createHostLifecycleBindings(this.plugin, this.host, this.timeouts);
+    const decoded = await lifecycle.decode(frame);
+    await lifecycle.update(decoded, 16.67);
+    const nextFrame = await lifecycle.encode();
     const elapsed = performance.now() - start;
 
     if (elapsed > this.limits.maxFrameMs) {
@@ -30,11 +37,23 @@ export class LensRuntime {
     return nextFrame;
   }
 
-  static async create(plugin: LensPlugin, host: HostBindings, limits: RuntimeLimits): Promise<LensRuntime> {
-    if (plugin.init) {
-      await plugin.init(host);
-    }
+  static async create(
+    plugin: LensPluginV1,
+    host: HostDeterministicContext,
+    limits: RuntimeLimits,
+    compatibility: PluginCompatibilityRequirements,
+    timeouts: Partial<TimeoutSemantics> = {}
+  ): Promise<LensRuntime> {
+    assertManifestCompatibility(plugin.manifest, compatibility);
 
-    return new LensRuntime(plugin, host, limits);
+    const runtime = new LensRuntime(plugin, host, limits, timeouts);
+    const lifecycle = createHostLifecycleBindings(plugin, host, timeouts);
+    await lifecycle.init();
+    return runtime;
+  }
+
+  async shutdown(): Promise<void> {
+    const lifecycle = createHostLifecycleBindings(this.plugin, this.host, this.timeouts);
+    await lifecycle.shutdown();
   }
 }
