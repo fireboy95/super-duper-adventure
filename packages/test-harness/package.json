@@ -1,5 +1,5 @@
 {
-  "name": "@adventure/lens-echo",
+  "name": "@adventure/test-harness",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,11 +9,8 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src --ext .ts",
+    "test": "npm run build && node --test dist/*.test.js",
+    "test:fixtures": "npm run build && node dist/replay-fixtures.test.js",
     "clean": "rm -rf dist"
-  },
-  "dependencies": {
-    "@adventure/core-schema": "0.1.0",
-    "@adventure/plugin-api": "0.1.0"
-  },
-  "adventureContractVersion": "0.1.0"
+  }
 }
