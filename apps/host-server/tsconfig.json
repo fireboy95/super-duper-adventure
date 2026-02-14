@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../../packages/core-schema" },
+    { "path": "../../packages/lens-runtime" },
+    { "path": "../../packages/net" },
+    { "path": "../../packages/plugin-api" }
+  ]
+}
