@@ -7,9 +7,29 @@
   },
   "include": ["src"],
   "references": [
-    { "path": "../../packages/core-schema" },
-    { "path": "../../packages/lens-runtime" },
-    { "path": "../../packages/net" },
-    { "path": "../../packages/plugin-api" }
+    {
+      "path": "../../packages/core-schema"
+    },
+    {
+      "path": "../../packages/lens-runtime"
+    },
+    {
+      "path": "../../packages/net"
+    },
+    {
+      "path": "../../packages/plugin-api"
+    },
+    {
+      "path": "../../packages/lenses/echo-lens"
+    },
+    {
+      "path": "../../packages/lenses/arcade-lens"
+    },
+    {
+      "path": "../../packages/lenses/stealth-lens"
+    },
+    {
+      "path": "../../packages/lenses/boss-overseer"
+    }
   ]
 }
