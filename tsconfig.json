@@ -2,12 +2,35 @@
   "extends": "./tsconfig.base.json",
   "files": [],
   "references": [
-    { "path": "./packages/core-schema" },
-    { "path": "./packages/plugin-api" },
-    { "path": "./packages/lens-runtime" },
-    { "path": "./packages/net" },
-    { "path": "./packages/lenses/echo-lens" },
-    { "path": "./apps/host-server" },
-    { "path": "./apps/web-client" }
+    {
+      "path": "./packages/core-schema"
+    },
+    {
+      "path": "./packages/plugin-api"
+    },
+    {
+      "path": "./packages/lens-runtime"
+    },
+    {
+      "path": "./packages/net"
+    },
+    {
+      "path": "./packages/lenses/echo-lens"
+    },
+    {
+      "path": "./packages/lenses/boss-overseer"
+    },
+    {
+      "path": "./packages/lenses/stealth-lens"
+    },
+    {
+      "path": "./packages/lenses/arcade-lens"
+    },
+    {
+      "path": "./apps/host-server"
+    },
+    {
+      "path": "./apps/web-client"
+    }
   ]
 }

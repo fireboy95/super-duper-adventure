@@ -1,5 +1,5 @@
 {
-  "name": "@adventure/host-server",
+  "name": "@adventure/lens-arcade-lens",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,17 +9,10 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src --ext .ts",
-    "clean": "rm -rf dist",
-    "dev": "node --enable-source-maps dist/index.js"
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@adventure/core-schema": "0.1.0",
-    "@adventure/lens-arcade-lens": "0.1.0",
-    "@adventure/lens-boss-overseer": "0.1.0",
-    "@adventure/lens-echo": "0.1.0",
-    "@adventure/lens-runtime": "0.1.0",
-    "@adventure/lens-stealth-lens": "0.1.0",
-    "@adventure/net": "0.1.0",
     "@adventure/plugin-api": "0.1.0"
   }
 }
