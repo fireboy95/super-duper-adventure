@@ -18,3 +18,5 @@ export interface WasmLensModule {
 }
 
 export type WITContractVersion = '0.1.0';
+
+export const WIT_CONTRACT_VERSION: WITContractVersion = '0.1.0';
