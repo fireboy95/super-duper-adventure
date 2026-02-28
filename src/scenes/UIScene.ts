@@ -411,54 +411,12 @@ export class UIScene extends Phaser.Scene {
     this.menuBar = this.add.container(0, 0);
     this.subMenuBar = this.add.container(0, 0);
 
-    const topMenus: Array<{ key: TopMenuKey; icon: string; label: string; color: number }> = [
-      { key: 'feed', icon: '🍽', label: 'FEED', color: 0x306a43 },
-      { key: 'care', icon: '🧹', label: 'CARE', color: 0x365f82 },
-      { key: 'social', icon: '🤝', label: 'SOCIAL', color: 0x7a5738 },
-    ];
-
-    for (const menu of topMenus) {
-      const button = this.createActionButton(menu.icon, menu.label, menu.color, () => {
-        this.sound.play('ui-click', { volume: 0.24 });
-        this.toggleActionSubmenu(menu.key);
-      });
-      this.topMenuButtons.set(menu.key, button);
-      this.menuBar.add(button);
-    }
-
-    const actionGroups: Array<{ key: string; menu: TopMenuKey; icon: string; label: string; color: number }> = [
-      { key: 'nutrition', menu: 'feed', icon: '🥣', label: 'NUTRITION', color: 0x306a43 },
-      { key: 'water', menu: 'feed', icon: '💧', label: 'WATER', color: 0x2e6f95 },
-      { key: 'hygiene', menu: 'care', icon: '🧽', label: 'HYGIENE', color: 0x365f82 },
-      { key: 'bonding', menu: 'social', icon: '🐹', label: 'BONDING', color: 0x7a5738 },
-    ];
-
-    for (const group of actionGroups) {
-      const button = this.createActionButton(group.icon, group.label, group.color, () => {
-        this.sound.play('ui-click', { volume: 0.24 });
-        this.toggleActionGroup(group.key);
-      });
-      button.setData('menu', group.menu);
-      button.setData('isGroup', true);
-      this.actionGroupButtons.set(group.key, button);
-      this.subMenuBar.add(button);
-    }
-
-    this.backButton = this.createActionButton('↩', 'BACK', 0x4a4a4a, () => {
-      this.sound.play('ui-click', { volume: 0.24 });
-      this.activeActionGroup = null;
-      this.refreshActionHierarchy();
-    });
-    this.backButton.setData('menu', 'group-back');
-    this.backButton.setData('isGroup', true);
-    this.subMenuBar.add(this.backButton);
-
-    const actions: Array<{ key: string; menu: TopMenuKey; group: string; icon: string; label: string; color: number; onPress: () => void }> = [
-      { key: 'feed-standard', menu: 'feed', group: 'nutrition', icon: '🥣', label: 'STANDARD', color: 0x306a43, onPress: () => this.scene.get('CageScene').events.emit('action:feed') },
-      { key: 'feed-sweet', menu: 'feed', group: 'nutrition', icon: '🍬', label: 'SWEET', color: 0x6e3e8c, onPress: () => this.scene.get('CageScene').events.emit('action:feed-sweet') },
-      { key: 'refill-water', menu: 'feed', group: 'water', icon: '💧', label: 'REFILL', color: 0x2e6f95, onPress: () => this.scene.get('CageScene').events.emit('action:refill-water') },
-      { key: 'clean', menu: 'care', group: 'hygiene', icon: '🧽', label: 'CLEAN', color: 0x365f82, onPress: () => this.scene.get('CageScene').events.emit('action:clean') },
-      { key: 'handle', menu: 'social', group: 'bonding', icon: '🤝', label: 'HANDLE', color: 0x7a5738, onPress: () => this.scene.get('CageScene').events.emit('action:handle') },
+    const actions: Array<{ key: string; icon: string; label: string; color: number; onPress: () => void }> = [
+      { key: 'feed-standard', icon: '🥣', label: 'FEED', color: 0x306a43, onPress: () => this.scene.get('CageScene').events.emit('action:feed') },
+      { key: 'feed-sweet', icon: '🍬', label: 'TREAT', color: 0x6e3e8c, onPress: () => this.scene.get('CageScene').events.emit('action:feed-sweet') },
+      { key: 'refill-water', icon: '💧', label: 'WATER', color: 0x2e6f95, onPress: () => this.scene.get('CageScene').events.emit('action:refill-water') },
+      { key: 'clean', icon: '🧽', label: 'CLEAN', color: 0x365f82, onPress: () => this.scene.get('CageScene').events.emit('action:clean') },
+      { key: 'handle', icon: '🤝', label: 'HANDLE', color: 0x7a5738, onPress: () => this.scene.get('CageScene').events.emit('action:handle') },
     ];
 
     for (const action of actions) {
@@ -468,16 +426,16 @@ export class UIScene extends Phaser.Scene {
         this.sound.play('ui-click', { volume: 0.25 });
         action.onPress();
       });
-      button.setData('menu', action.menu);
-      button.setData('group', action.group);
+      button.setData('isPrimaryAction', true);
+      this.setButtonVisibility(button, true, false);
       this.subActionButtons.set(action.key, button);
       this.subMenuBar.add(button);
     }
 
     this.setActionButtonDisabled(this.subActionButtons.get('feed-standard'), false, 0x306a43);
     this.setActionButtonDisabled(this.subActionButtons.get('feed-sweet'), false, 0x6e3e8c);
-    this.toggleActionSubmenu('feed');
   }
+
 
   private toggleActionSubmenu(menu: TopMenuKey): void {
     this.activeMenu = this.activeMenu === menu ? null : menu;
@@ -680,10 +638,11 @@ export class UIScene extends Phaser.Scene {
     const gap = isNarrow ? 10 : 12;
 
     const topButtons = Array.from(this.topMenuButtons.values());
+    const hasTopButtons = topButtons.length > 0;
     const columns = Math.max(1, topButtons.length);
     const availableWidth = width - sidePadding * 2 - gap * (columns - 1);
     const topButtonWidth = Math.max(isNarrow ? 110 : 120, Math.floor(availableWidth / columns));
-    const topButtonHeight = isNarrow ? 50 : 44;
+    const topButtonHeight = hasTopButtons ? (isNarrow ? 50 : 44) : 0;
 
     topButtons.forEach((button, index) => {
       const x = sidePadding + index * (topButtonWidth + gap) + topButtonWidth / 2;
@@ -703,7 +662,7 @@ export class UIScene extends Phaser.Scene {
     const subRows = Math.max(1, Math.ceil((visibleSubButtons.length || 1) / subColumns));
     const subRowGap = 8;
     const subButtonHeight = 38;
-    const subTopY = height - (isNarrow ? 84 : 78);
+    const subTopY = height - (isNarrow ? 48 : 42) - (subRows - 1) * (subButtonHeight + subRowGap);
 
     visibleSubButtons.forEach((button, index) => {
       const column = index % subColumns;
@@ -718,7 +677,7 @@ export class UIScene extends Phaser.Scene {
       button.setPosition(x, y);
     });
 
-    this.controlsAreaHeight = topButtonHeight + 24 + subRows * (subButtonHeight + subRowGap);
+    this.controlsAreaHeight = subRows * (subButtonHeight + subRowGap) + (hasTopButtons ? topButtonHeight + 24 : 14);
 
     if (this.hudBackground) {
       const hudHeight = isNarrow ? 68 : 52;

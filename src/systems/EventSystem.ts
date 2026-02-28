@@ -24,6 +24,9 @@ interface EventEscalation {
   ignoreThreshold: number;
 }
 
+const HEALTHY_AMBIENT_EVENT_PREFIX = 'event_ambient_';
+const HEALTHY_AMBIENT_MIN_GAP_MINUTES = 360;
+
 interface EventDefinition {
   id: string;
   priority: number;
@@ -129,6 +132,38 @@ export class EventSystem {
         console.debug(`[event] "${eventDef.id}" suppressed by maxRepeats (${seenTriggers}/${eventDef.maxRepeats}).`);
         return false;
       }
+    }
+
+    if (this.isHealthyAmbientEvent(eventDef) && !this.hasHealthyAmbientGap(state, eventDef.id)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private isHealthyAmbientEvent(eventDef: EventDefinition): boolean {
+    return eventDef.id.startsWith(HEALTHY_AMBIENT_EVENT_PREFIX);
+  }
+
+  private hasHealthyAmbientGap(state: SimulationState, candidateEventId: string): boolean {
+    const nowAbsoluteMinutes = state.day * 1440 + state.timeOfDayMinutes;
+    const lastTriggeredAtMinutesByEventId = state.eventState.lastTriggeredAtMinutesByEventId;
+
+    let mostRecentAmbientTrigger = -Infinity;
+    for (const [eventId, absoluteMinutes] of Object.entries(lastTriggeredAtMinutesByEventId)) {
+      if (!eventId.startsWith(HEALTHY_AMBIENT_EVENT_PREFIX)) continue;
+      if (eventId === candidateEventId) continue;
+      if (absoluteMinutes > mostRecentAmbientTrigger) mostRecentAmbientTrigger = absoluteMinutes;
+    }
+
+    if (!Number.isFinite(mostRecentAmbientTrigger)) return true;
+
+    const elapsedMinutes = nowAbsoluteMinutes - mostRecentAmbientTrigger;
+    if (elapsedMinutes < HEALTHY_AMBIENT_MIN_GAP_MINUTES) {
+      console.debug(
+        `[event] "${candidateEventId}" suppressed by healthy ambient gap (${elapsedMinutes.toFixed(1)}m/${HEALTHY_AMBIENT_MIN_GAP_MINUTES}m).`,
+      );
+      return false;
     }
 
     return true;
