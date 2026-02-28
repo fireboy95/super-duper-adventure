@@ -4,6 +4,7 @@ import { CageScene } from './scenes/CageScene';
 import { EndingScene } from './scenes/EndingScene';
 import { TitleScene } from './scenes/TitleScene';
 import { UIScene } from './scenes/UIScene';
+import { debugConsole } from './systems/DebugConsole';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -19,4 +20,5 @@ const config: Phaser.Types.Core.GameConfig = {
   scene: [BootScene, TitleScene, CageScene, UIScene, EndingScene],
 };
 
+debugConsole.install();
 new Phaser.Game(config);
