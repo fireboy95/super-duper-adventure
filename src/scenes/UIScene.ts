@@ -12,6 +12,11 @@ export class UIScene extends Phaser.Scene {
   private feedButton?: Phaser.GameObjects.Container;
   private cleanButton?: Phaser.GameObjects.Container;
   private debugButton?: Phaser.GameObjects.Container;
+  private sweetButton?: Phaser.GameObjects.Container;
+  private waterButton?: Phaser.GameObjects.Container;
+  private handleButton?: Phaser.GameObjects.Container;
+  private feedButtonDisabled = false;
+  private sweetButtonDisabled = false;
   private isDebugOpen = false;
   private unsubscribeDebug?: () => void;
 
@@ -77,10 +82,13 @@ export class UIScene extends Phaser.Scene {
 
   private bindHudEvents(): void {
     const cageScene = this.scene.get('CageScene');
-    cageScene.events.on('hud:update', (payload: { hunger: number; thirst: number; energy: number; health: number; cleanliness: number; mood: number }) => {
+    cageScene.events.on('hud:update', (payload: { hunger: number; thirst: number; energy: number; health: number; cleanliness: number; mood: number; foodStandard?: number; foodSweet?: number }) => {
       this.hudText?.setText(
         `Hunger ${payload.hunger.toFixed(0)} | Thirst ${payload.thirst.toFixed(0)} | Energy ${payload.energy.toFixed(0)} | Health ${payload.health.toFixed(0)} | Cleanliness ${payload.cleanliness.toFixed(0)} | Mood ${payload.mood.toFixed(0)}`
       );
+
+      this.setActionButtonDisabled(this.feedButton, (payload.foodStandard ?? 0) <= 0, 0x306a43);
+      this.setActionButtonDisabled(this.sweetButton, (payload.foodSweet ?? 0) <= 0, 0x6e3e8c);
     });
   }
 
@@ -315,8 +323,25 @@ export class UIScene extends Phaser.Scene {
 
   private createTouchControls(): void {
     this.feedButton = this.createActionButton('FEED', 0x306a43, () => {
+      if (this.feedButtonDisabled) return;
       this.sound.play('ui-click', { volume: 0.25 });
       this.scene.get('CageScene').events.emit('action:feed');
+    });
+
+    this.sweetButton = this.createActionButton('SWEET', 0x6e3e8c, () => {
+      if (this.sweetButtonDisabled) return;
+      this.sound.play('ui-click', { volume: 0.25 });
+      this.scene.get('CageScene').events.emit('action:feed-sweet');
+    });
+
+    this.waterButton = this.createActionButton('WATER', 0x2e6f95, () => {
+      this.sound.play('ui-click', { volume: 0.25 });
+      this.scene.get('CageScene').events.emit('action:refill-water');
+    });
+
+    this.handleButton = this.createActionButton('HANDLE', 0x7a5738, () => {
+      this.sound.play('ui-click', { volume: 0.25 });
+      this.scene.get('CageScene').events.emit('action:handle');
     });
 
     this.cleanButton = this.createActionButton('CLEAN', 0x365f82, () => {
@@ -328,6 +353,32 @@ export class UIScene extends Phaser.Scene {
       this.sound.play('ui-click', { volume: 0.22 });
       this.toggleDebugPanel();
     });
+
+    this.setActionButtonDisabled(this.feedButton, false, 0x306a43);
+    this.setActionButtonDisabled(this.sweetButton, false, 0x6e3e8c);
+  }
+
+  private setActionButtonDisabled(button: Phaser.GameObjects.Container | undefined, isDisabled: boolean, enabledColor: number): void {
+    if (!button) return;
+    const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
+    const text = button.list[1] as Phaser.GameObjects.Text | undefined;
+    if (!background) return;
+
+    background.disableInteractive();
+    if (!isDisabled) {
+      background.setInteractive({ useHandCursor: true });
+    }
+
+    background.setFillStyle(isDisabled ? 0x3a3a3a : enabledColor, isDisabled ? 0.65 : 0.92);
+    text?.setAlpha(isDisabled ? 0.45 : 1);
+
+    if (button === this.feedButton) {
+      this.feedButtonDisabled = isDisabled;
+    }
+
+    if (button === this.sweetButton) {
+      this.sweetButtonDisabled = isDisabled;
+    }
   }
 
   private createActionButton(label: string, color: number, onPress: () => void): Phaser.GameObjects.Container {
@@ -402,17 +453,31 @@ export class UIScene extends Phaser.Scene {
     const horizontalPadding = 14;
     const controlsBottomOffset = 28;
     const buttonGap = 12;
+    const buttonWidth = 136;
+    const rightAnchorX = width - horizontalPadding - 68;
 
     if (this.feedButton) {
-      this.feedButton.setPosition(width - horizontalPadding - 68 - 136 - 136 - buttonGap * 2, height - controlsBottomOffset);
+      this.feedButton.setPosition(rightAnchorX - (buttonWidth + buttonGap) * 5, height - controlsBottomOffset);
+    }
+
+    if (this.sweetButton) {
+      this.sweetButton.setPosition(rightAnchorX - (buttonWidth + buttonGap) * 4, height - controlsBottomOffset);
+    }
+
+    if (this.waterButton) {
+      this.waterButton.setPosition(rightAnchorX - (buttonWidth + buttonGap) * 3, height - controlsBottomOffset);
+    }
+
+    if (this.handleButton) {
+      this.handleButton.setPosition(rightAnchorX - (buttonWidth + buttonGap) * 2, height - controlsBottomOffset);
     }
 
     if (this.cleanButton) {
-      this.cleanButton.setPosition(width - horizontalPadding - 68 - 136 - buttonGap, height - controlsBottomOffset);
+      this.cleanButton.setPosition(rightAnchorX - (buttonWidth + buttonGap), height - controlsBottomOffset);
     }
 
     if (this.debugButton) {
-      this.debugButton.setPosition(width - horizontalPadding - 68, height - controlsBottomOffset);
+      this.debugButton.setPosition(rightAnchorX, height - controlsBottomOffset);
     }
 
     if (this.debugHintText) {
