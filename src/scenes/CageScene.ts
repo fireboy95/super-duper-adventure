@@ -9,6 +9,8 @@ const EVENT_HEARTBEAT_INTERVAL_MS = 3_000;
 const EVENT_HEARTBEAT_JITTER = 0.2;
 const EVENT_FAST_LANE_PRIORITY = 90;
 
+type HamsterAnimationKey = 'hamster-idle' | 'hamster-happy' | 'hamster-stress' | 'hamster-sleep' | 'hamster-eat';
+
 export class CageScene extends Phaser.Scene {
   private simulation = new SimulationManager();
   private eventSystem = new EventSystem();
@@ -27,6 +29,8 @@ export class CageScene extends Phaser.Scene {
   private moodAura?: Phaser.GameObjects.Ellipse;
   private stressOverlay?: Phaser.GameObjects.Rectangle;
   private grimeOverlay?: Phaser.GameObjects.Rectangle;
+  private activeHamsterAnimation: HamsterAnimationKey = 'hamster-idle';
+  private temporaryAnimationUntilMs = 0;
 
   constructor() {
     super('CageScene');
@@ -188,10 +192,7 @@ export class CageScene extends Phaser.Scene {
     this.grimeOverlay?.setAlpha(grimeAlpha);
 
     if (this.hamster) {
-      const idleAnim = this.hamster.anims.get('hamster-idle');
-      if (idleAnim) {
-        this.hamster.anims.timeScale = stress > 65 ? 1.8 : state.hamster.stats.energy < 35 ? 0.65 : 1;
-      }
+      this.updateHamsterAnimation(state);
 
       if (health < 40) {
         this.hamster.setTint(0xd6b2b2);
@@ -204,12 +205,11 @@ export class CageScene extends Phaser.Scene {
   }
 
   private createHamsterSprite(): void {
-    this.anims.create({
-      key: 'hamster-idle',
-      frames: [{ key: 'hamster-idle-1' }, { key: 'hamster-idle-2' }],
-      frameRate: 2,
-      repeat: -1,
-    });
+    this.createHamsterAnimation('hamster-idle', ['hamster-idle-1', 'hamster-idle-2'], 2);
+    this.createHamsterAnimation('hamster-happy', ['hamster-happy-1', 'hamster-happy-2'], 4);
+    this.createHamsterAnimation('hamster-stress', ['hamster-stress-1', 'hamster-stress-2'], 8);
+    this.createHamsterAnimation('hamster-sleep', ['hamster-sleep-1', 'hamster-sleep-2'], 1.5);
+    this.createHamsterAnimation('hamster-eat', ['hamster-eat-1', 'hamster-eat-2'], 7);
 
     this.hamster = this.add.sprite(320, 295, 'hamster-idle-1');
     this.hamster.setScale(1.4);
@@ -232,6 +232,54 @@ export class CageScene extends Phaser.Scene {
       repeat: -1,
       ease: 'Sine.easeInOut',
     });
+  }
+
+
+  private createHamsterAnimation(key: HamsterAnimationKey, frameKeys: [string, string], frameRate: number): void {
+    this.anims.create({
+      key,
+      frames: frameKeys.map((frameKey) => ({ key: frameKey })),
+      frameRate,
+      repeat: -1,
+    });
+  }
+
+  private updateHamsterAnimation(state: ReturnType<SimulationManager['getState']>): void {
+    if (!this.hamster) return;
+
+    const now = this.time.now;
+    const desiredAnimation = now < this.temporaryAnimationUntilMs ? this.activeHamsterAnimation : this.getAmbientHamsterAnimation(state);
+
+    if (this.activeHamsterAnimation !== desiredAnimation || this.hamster.anims.currentAnim?.key !== desiredAnimation) {
+      this.activeHamsterAnimation = desiredAnimation;
+      this.hamster.play(desiredAnimation, true);
+    }
+
+    this.hamster.anims.timeScale = this.getAnimationTimeScale(desiredAnimation, state);
+  }
+
+  private getAmbientHamsterAnimation(state: ReturnType<SimulationManager['getState']>): HamsterAnimationKey {
+    const { mood, stress, energy, health } = state.hamster.stats;
+
+    if (health <= 20) return 'hamster-sleep';
+    if (stress >= 68) return 'hamster-stress';
+    if (energy <= 25 && stress <= 55) return 'hamster-sleep';
+    if (mood >= 72 && energy >= 35) return 'hamster-happy';
+    return 'hamster-idle';
+  }
+
+  private getAnimationTimeScale(animationKey: HamsterAnimationKey, state: ReturnType<SimulationManager['getState']>): number {
+    if (animationKey === 'hamster-stress') return state.hamster.stats.stress > 85 ? 1.35 : 1;
+    if (animationKey === 'hamster-sleep') return state.hamster.stats.energy < 15 ? 0.75 : 1;
+    if (animationKey === 'hamster-happy') return state.hamster.stats.mood > 85 ? 1.15 : 1;
+    if (animationKey === 'hamster-eat') return 1;
+    return state.hamster.stats.stress > 65 ? 1.8 : state.hamster.stats.energy < 35 ? 0.65 : 1;
+  }
+
+  private playTemporaryAnimation(animationKey: HamsterAnimationKey, durationMs: number): void {
+    this.activeHamsterAnimation = animationKey;
+    this.temporaryAnimationUntilMs = this.time.now + durationMs;
+    this.hamster?.play(animationKey, true);
   }
 
   private refreshStatus(): void {
@@ -269,12 +317,14 @@ export class CageScene extends Phaser.Scene {
   private handleFeedAction(): void {
     this.sound.play('hamster-squeak', { volume: 0.45 });
     this.simulation.applyPlayerAction('feed_standard');
+    this.playTemporaryAnimation('hamster-eat', 900);
     this.animateReaction(0x7df18f);
   }
 
   private handleCleanAction(): void {
     this.sound.play('ui-click', { volume: 0.35 });
     this.simulation.applyPlayerAction('clean_cage');
+    this.playTemporaryAnimation('hamster-happy', 450);
     this.animateReaction(0x7ad9ff);
   }
 
@@ -282,18 +332,22 @@ export class CageScene extends Phaser.Scene {
     if ((this.simulation.getState().inventory.food_sweet ?? 0) <= 0) return;
     this.sound.play('hamster-squeak', { volume: 0.45 });
     this.simulation.applyPlayerAction('feed_sweet');
+    this.playTemporaryAnimation('hamster-eat', 1050);
     this.animateReaction(0xc184ff);
   }
 
   private handleRefillWaterAction(): void {
     this.sound.play('ui-click', { volume: 0.35 });
     this.simulation.applyPlayerAction('refill_water');
+    this.playTemporaryAnimation('hamster-happy', 500);
     this.animateReaction(0x86d9ff);
   }
 
   private handleHandleAction(): void {
     this.sound.play('ui-click', { volume: 0.35 });
     this.simulation.applyPlayerAction('handle_hamster');
+    const trust = this.simulation.getState().hamster.stats.trust;
+    this.playTemporaryAnimation(trust >= 50 ? 'hamster-happy' : 'hamster-stress', 700);
     this.animateReaction(0xffd087);
   }
 
