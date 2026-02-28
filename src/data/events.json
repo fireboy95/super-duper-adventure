@@ -1,0 +1,21 @@
+[
+  {
+    "id": "event_sweets_overload_stage1",
+    "priority": 40,
+    "rarity": 0.6,
+    "dialogId": "dlg_sweets_warning_1",
+    "conditions": [
+      { "path": "hamster.flags.hyperactive", "op": "eq", "value": true },
+      { "path": "hamster.stats.health", "op": "lte", "value": 85 }
+    ]
+  },
+  {
+    "id": "event_dirty_cage_warning",
+    "priority": 50,
+    "rarity": 0.8,
+    "dialogId": "dlg_dirty_cage_1",
+    "conditions": [
+      { "path": "cage.cleanliness", "op": "lte", "value": 35 }
+    ]
+  }
+]

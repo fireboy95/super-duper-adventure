@@ -1,0 +1,10 @@
+[
+  {
+    "id": "toy_wheel",
+    "type": "toy",
+    "displayName": "Exercise Wheel",
+    "stimulationType": "physical",
+    "durability": 100,
+    "riskFactor": 0.03
+  }
+]
