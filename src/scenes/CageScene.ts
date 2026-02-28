@@ -5,6 +5,9 @@ import { SimulationManager } from '../systems/SimulationManager';
 import { SaveSystem } from '../systems/SaveSystem';
 
 const AUTOSAVE_INTERVAL_MS = 10_000;
+const EVENT_HEARTBEAT_INTERVAL_MS = 3_000;
+const EVENT_HEARTBEAT_JITTER = 0.2;
+const EVENT_FAST_LANE_PRIORITY = 90;
 
 export class CageScene extends Phaser.Scene {
   private simulation = new SimulationManager();
@@ -12,6 +15,8 @@ export class CageScene extends Phaser.Scene {
   private saveSystem = new SaveSystem();
   private accumulatedMs = 0;
   private autosaveElapsedMs = 0;
+  private lastEventAttemptMs = 0;
+  private nextEventAttemptDelayMs = 0;
   private hasTransitionedToEnding = false;
   private statusText?: Phaser.GameObjects.Text;
   private hamster?: Phaser.GameObjects.Sprite;
@@ -33,6 +38,8 @@ export class CageScene extends Phaser.Scene {
     this.simulation = new SimulationManager(loadedState ?? undefined);
     this.autosaveElapsedMs = 0;
     this.hasTransitionedToEnding = false;
+    this.lastEventAttemptMs = 0;
+    this.nextEventAttemptDelayMs = this.rollEventAttemptDelayMs();
 
     this.cameras.main.setBackgroundColor('#2a2f2a');
 
@@ -76,6 +83,7 @@ export class CageScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     this.accumulatedMs += delta;
     this.autosaveElapsedMs += delta;
+    this.lastEventAttemptMs += delta;
 
     if (this.autosaveElapsedMs >= AUTOSAVE_INTERVAL_MS) {
       this.saveCurrentState();
@@ -86,7 +94,17 @@ export class CageScene extends Phaser.Scene {
       this.simulation.tick(0.25);
       this.accumulatedMs -= 250;
 
-      const triggered = this.eventSystem.poll(this.simulation.getState());
+      const state = this.simulation.getState();
+      const heartbeatElapsed = this.lastEventAttemptMs >= this.nextEventAttemptDelayMs;
+      const triggered = heartbeatElapsed
+        ? this.eventSystem.poll(state)
+        : this.eventSystem.poll(state, { minPriority: EVENT_FAST_LANE_PRIORITY });
+
+      if (heartbeatElapsed) {
+        this.lastEventAttemptMs = 0;
+        this.nextEventAttemptDelayMs = this.rollEventAttemptDelayMs();
+      }
+
       if (triggered) {
         this.simulation.registerTriggeredEvent(triggered.id, this.eventSystem.getCooldownDays(triggered.id));
         this.events.emit('dialog:show', { dialogId: triggered.dialogId, eventId: triggered.id });
@@ -105,6 +123,11 @@ export class CageScene extends Phaser.Scene {
     }
 
     this.refreshStatus();
+  }
+
+
+  private rollEventAttemptDelayMs(): number {
+    return EVENT_HEARTBEAT_INTERVAL_MS * Phaser.Math.FloatBetween(1 - EVENT_HEARTBEAT_JITTER, 1 + EVENT_HEARTBEAT_JITTER);
   }
 
   private createAmbientEffects(): void {
