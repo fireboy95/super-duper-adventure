@@ -1,4 +1,5 @@
 import defaults from '../data/stats.defaults.json';
+import type { DialogOptionEffects } from './DialogueSystem';
 import type { HamsterStats, PlayerActionType, SimulationState } from '../types/simulation';
 
 const MINUTES_PER_DAY = 24 * 60;
@@ -81,6 +82,54 @@ export class SimulationManager {
     }
   }
 
+
+
+  applyDialogEffects(effects: DialogOptionEffects | undefined): void {
+    if (!effects || !this.state.hamster.alive) return;
+
+    if (effects.stats) {
+      for (const [rawStat, delta] of Object.entries(effects.stats)) {
+        if (typeof delta !== 'number') continue;
+        const stat = rawStat as keyof HamsterStats;
+        if (stat in this.state.hamster.stats) this.changeStat(stat, delta);
+      }
+    }
+
+    if (effects.memory) {
+      for (const [rawMemoryKey, delta] of Object.entries(effects.memory)) {
+        if (typeof delta !== 'number') continue;
+        const memoryKey = rawMemoryKey as keyof SimulationState['hamster']['memory'];
+        if (!(memoryKey in this.state.hamster.memory)) continue;
+        const current = this.state.hamster.memory[memoryKey];
+        this.state.hamster.memory[memoryKey] = Math.max(0, current + delta);
+      }
+    }
+
+    if (effects.flags) {
+      for (const [rawFlagKey, value] of Object.entries(effects.flags)) {
+        if (typeof value !== 'boolean') continue;
+        const flagKey = rawFlagKey as keyof SimulationState['hamster']['flags'];
+        if (flagKey in this.state.hamster.flags) this.state.hamster.flags[flagKey] = value;
+      }
+    }
+
+    if (effects.progression) {
+      const progression = effects.progression;
+
+      if (typeof progression.daysSurvivedDelta === 'number') {
+        this.state.progression.daysSurvived = Math.max(0, this.state.progression.daysSurvived + progression.daysSurvivedDelta);
+      }
+
+      this.pushUnique(this.state.progression.unlockedItems, progression.unlockedItemsAdd);
+      this.pushUnique(this.state.progression.seenDialogIds, progression.seenDialogIdsAdd);
+      this.pushUnique(this.state.progression.seenEventIds, progression.seenEventIdsAdd);
+
+      if (typeof progression.endingId === 'string' || progression.endingId === null) {
+        this.state.progression.endingId = progression.endingId;
+      }
+    }
+  }
+
   getVisibleStats(): Pick<HamsterStats, 'hunger' | 'mood' | 'health'> & { cleanliness: number } {
     return {
       hunger: this.state.hamster.stats.hunger,
@@ -100,6 +149,16 @@ export class SimulationManager {
 
   isNightTime(): boolean {
     return this.state.timeOfDayMinutes >= 20 * 60 || this.state.timeOfDayMinutes < 6 * 60;
+  }
+
+
+
+  private pushUnique(target: string[], values?: string[]): void {
+    if (!values) return;
+
+    for (const value of values) {
+      if (!target.includes(value)) target.push(value);
+    }
   }
 
   private incrementInventory(itemId: string, amount: number): void {

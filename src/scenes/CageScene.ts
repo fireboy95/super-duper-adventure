@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { EventSystem } from '../systems/EventSystem';
+import type { DialogOptionEffects } from '../systems/DialogueSystem';
 import { SimulationManager } from '../systems/SimulationManager';
 
 export class CageScene extends Phaser.Scene {
@@ -33,10 +34,12 @@ export class CageScene extends Phaser.Scene {
 
     this.events.on('action:feed', this.handleFeedAction, this);
     this.events.on('action:clean', this.handleCleanAction, this);
+    this.events.on('dialog:apply-effects', this.handleDialogEffects, this);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.events.off('action:feed', this.handleFeedAction, this);
       this.events.off('action:clean', this.handleCleanAction, this);
+      this.events.off('dialog:apply-effects', this.handleDialogEffects, this);
     });
 
     this.refreshStatus();
@@ -151,6 +154,12 @@ export class CageScene extends Phaser.Scene {
     this.sound.play('ui-click', { volume: 0.35 });
     this.simulation.applyPlayerAction('clean_cage');
     this.animateReaction(0x7ad9ff);
+  }
+
+
+
+  private handleDialogEffects(effects: DialogOptionEffects | undefined): void {
+    this.simulation.applyDialogEffects(effects);
   }
 
   private animateReaction(color: number): void {
