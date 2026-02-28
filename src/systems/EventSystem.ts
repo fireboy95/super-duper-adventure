@@ -6,6 +6,10 @@ export interface TriggeredEvent {
   dialogId: string;
 }
 
+interface PollOptions {
+  minPriority?: number;
+}
+
 interface EventCondition {
   path: string;
   op: 'lte' | 'gte' | 'eq';
@@ -32,11 +36,13 @@ export class EventSystem {
   private readonly eventDefs: EventDefinition[] = events as EventDefinition[];
   private readonly eventDefsById = new Map(this.eventDefs.map((eventDef) => [eventDef.id, eventDef]));
 
-  poll(state: SimulationState): TriggeredEvent | null {
+  poll(state: SimulationState, options?: PollOptions): TriggeredEvent | null {
+    const minPriority = options?.minPriority;
     const matchedCandidates = this.eventDefs
       .filter((eventDef) => eventDef.conditions.every((condition) => this.matchCondition(state, condition)))
       .map((eventDef) => this.resolveEscalation(eventDef, state))
       .filter((eventDef): eventDef is EventDefinition => Boolean(eventDef))
+      .filter((eventDef) => (typeof minPriority === 'number' ? eventDef.priority >= minPriority : true))
       .filter((eventDef, index, arr) => arr.findIndex((entry) => entry.id === eventDef.id) === index)
       .sort((a, b) => b.priority - a.priority);
 
