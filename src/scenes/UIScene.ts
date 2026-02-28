@@ -8,6 +8,8 @@ export class UIScene extends Phaser.Scene {
   private debugPanel?: Phaser.GameObjects.Container;
   private debugText?: Phaser.GameObjects.Text;
   private debugHintText?: Phaser.GameObjects.Text;
+  private feedButton?: Phaser.GameObjects.Container;
+  private cleanButton?: Phaser.GameObjects.Container;
   private isDebugOpen = false;
   private unsubscribeDebug?: () => void;
 
@@ -37,12 +39,17 @@ export class UIScene extends Phaser.Scene {
       wordWrap: { width: 600 },
     });
 
+    this.createTouchControls();
+    this.layoutResponsiveUi(this.scale.width, this.scale.height);
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
+
     this.createDebugOverlay();
     this.bindDebugToggle();
     this.bindDialogueEvents();
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribeDebug?.();
+      this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
     });
   }
 
@@ -99,5 +106,73 @@ export class UIScene extends Phaser.Scene {
       .map((entry) => `[${entry.timestamp}] ${entry.level.toUpperCase().padEnd(5)} ${entry.message}`);
 
     this.debugText.setText(lines.join('\n'));
+  }
+
+  private createTouchControls(): void {
+    this.feedButton = this.createActionButton('FEED', 0x306a43, () => {
+      this.scene.get('CageScene').events.emit('action:feed');
+    });
+
+    this.cleanButton = this.createActionButton('CLEAN', 0x365f82, () => {
+      this.scene.get('CageScene').events.emit('action:clean');
+    });
+  }
+
+  private createActionButton(label: string, color: number, onPress: () => void): Phaser.GameObjects.Container {
+    const background = this.add.rectangle(0, 0, 136, 44, color, 0.92);
+    background.setStrokeStyle(2, 0xeeeeee, 0.9);
+
+    const text = this.add.text(0, 0, label, {
+      fontFamily: 'monospace',
+      fontSize: '16px',
+      color: '#ffffff',
+    });
+    text.setOrigin(0.5);
+
+    const button = this.add.container(0, 0, [background, text]);
+    button.setSize(136, 44);
+    button.setInteractive({ useHandCursor: true });
+
+    button.on('pointerdown', () => {
+      onPress();
+      background.setFillStyle(0x1f1f1f, 0.96);
+    });
+
+    button.on('pointerup', () => {
+      background.setFillStyle(color, 0.92);
+    });
+
+    button.on('pointerout', () => {
+      background.setFillStyle(color, 0.92);
+    });
+
+    return button;
+  }
+
+  private handleResize(gameSize: Phaser.Structs.Size): void {
+    this.layoutResponsiveUi(gameSize.width, gameSize.height);
+  }
+
+  private layoutResponsiveUi(width: number, height: number): void {
+    const horizontalPadding = 14;
+    const controlsBottomOffset = 28;
+    const buttonGap = 12;
+
+    if (this.feedButton) {
+      this.feedButton.setPosition(width - horizontalPadding - 68 - 136 - buttonGap, height - controlsBottomOffset);
+    }
+
+    if (this.cleanButton) {
+      this.cleanButton.setPosition(width - horizontalPadding - 68, height - controlsBottomOffset);
+    }
+
+    if (this.dialogText) {
+      this.dialogText.setPosition(20, height - 70);
+      this.dialogText.setWordWrapWidth(Math.max(280, width - 40));
+    }
+
+    if (this.debugHintText) {
+      this.debugHintText.setPosition(width - 15, 10);
+    }
   }
 }

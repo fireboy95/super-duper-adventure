@@ -25,6 +25,14 @@ export class CageScene extends Phaser.Scene {
       if (pointer.rightButtonDown()) this.simulation.applyPlayerAction('clean_cage');
     });
 
+    this.events.on('action:feed', this.handleFeedAction, this);
+    this.events.on('action:clean', this.handleCleanAction, this);
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.events.off('action:feed', this.handleFeedAction, this);
+      this.events.off('action:clean', this.handleCleanAction, this);
+    });
+
     this.refreshStatus();
   }
 
@@ -52,7 +60,15 @@ export class CageScene extends Phaser.Scene {
       `Mood: ${visible.mood.toFixed(1)}`,
       `Health: ${visible.health.toFixed(1)}`,
       `Cleanliness: ${visible.cleanliness.toFixed(1)}`,
-      'Left click: feed, Right click: clean',
+      'Tap buttons (or left/right click): feed / clean',
     ]);
+  }
+
+  private handleFeedAction(): void {
+    this.simulation.applyPlayerAction('feed_standard');
+  }
+
+  private handleCleanAction(): void {
+    this.simulation.applyPlayerAction('clean_cage');
   }
 }
