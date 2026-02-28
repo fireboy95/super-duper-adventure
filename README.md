@@ -20,3 +20,4 @@ A TypeScript + Phaser 3 starter scaffold for the hamster care simulation describ
 ## Design documentation
 
 - Consolidated v1 GDD for ongoing AI/human development: `docs/GDD_V1.md`
+- Gap-based enhancement backlog: `docs/ENHANCEMENT_TASKS.md`
