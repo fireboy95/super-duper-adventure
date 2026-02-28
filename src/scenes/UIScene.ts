@@ -316,6 +316,7 @@ export class UIScene extends Phaser.Scene {
   private createActionButton(label: string, color: number, onPress: () => void): Phaser.GameObjects.Container {
     const background = this.add.rectangle(0, 0, 136, 44, color, 0.92);
     background.setStrokeStyle(2, 0xeeeeee, 0.9);
+    background.setInteractive({ useHandCursor: true });
 
     const text = this.add.text(0, 0, label, {
       fontFamily: 'monospace',
@@ -326,20 +327,18 @@ export class UIScene extends Phaser.Scene {
 
     const button = this.add.container(0, 0, [background, text]);
     button.setSize(136, 44);
-    button.setInteractive(new Phaser.Geom.Rectangle(-68, -22, 136, 44), Phaser.Geom.Rectangle.Contains);
-    button.input!.cursor = 'pointer';
 
-    button.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+    background.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
       event.stopPropagation();
       onPress();
       background.setFillStyle(0x1f1f1f, 0.96);
     });
 
-    button.on('pointerup', () => {
+    background.on('pointerup', () => {
       background.setFillStyle(color, 0.92);
     });
 
-    button.on('pointerout', () => {
+    background.on('pointerout', () => {
       background.setFillStyle(color, 0.92);
     });
 
@@ -349,6 +348,7 @@ export class UIScene extends Phaser.Scene {
   private createModalButton(label: string, color: number, onPress: () => void): Phaser.GameObjects.Container {
     const background = this.add.rectangle(320, 0, 420, 34, color, 0.95);
     background.setStrokeStyle(1, 0xe6f0ff, 0.75);
+    background.setInteractive({ useHandCursor: true });
 
     const text = this.add.text(320, 0, label, {
       fontFamily: 'monospace',
@@ -359,20 +359,18 @@ export class UIScene extends Phaser.Scene {
 
     const button = this.add.container(0, 0, [background, text]);
     button.setSize(420, 34);
-    button.setInteractive(new Phaser.Geom.Rectangle(110, -17, 420, 34), Phaser.Geom.Rectangle.Contains);
-    button.input!.cursor = 'pointer';
 
-    button.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+    background.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
       event.stopPropagation();
       onPress();
       background.setFillStyle(0x1f1f1f, 0.96);
     });
 
-    button.on('pointerup', () => {
+    background.on('pointerup', () => {
       background.setFillStyle(color, 0.95);
     });
 
-    button.on('pointerout', () => {
+    background.on('pointerout', () => {
       background.setFillStyle(color, 0.95);
     });
 
