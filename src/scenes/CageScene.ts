@@ -66,11 +66,28 @@ export class CageScene extends Phaser.Scene {
   }
 
   private updateAmbientLighting(): void {
-    const cycleMs = 30000;
-    const t = (this.time.now % cycleMs) / cycleMs;
-    const daylight = 0.5 + 0.5 * Math.sin(t * Math.PI * 2);
-    const overlayAlpha = Phaser.Math.Linear(0.05, 0.26, 1 - daylight);
-    const glowAlpha = Phaser.Math.Linear(0.05, 0.18, daylight);
+    const timeOfDayMinutes = this.simulation.getState().timeOfDayMinutes;
+
+    const dawnStart = 6 * 60;
+    const dayStart = 8 * 60;
+    const duskStart = 18 * 60;
+    const nightStart = 20 * 60;
+
+    let overlayAlpha = 0.22;
+    let glowAlpha = 0.06;
+
+    if (timeOfDayMinutes >= dawnStart && timeOfDayMinutes < dayStart) {
+      const dawnProgress = (timeOfDayMinutes - dawnStart) / (dayStart - dawnStart);
+      overlayAlpha = Phaser.Math.Linear(0.22, 0.08, dawnProgress);
+      glowAlpha = Phaser.Math.Linear(0.07, 0.17, dawnProgress);
+    } else if (timeOfDayMinutes >= dayStart && timeOfDayMinutes < duskStart) {
+      overlayAlpha = 0.08;
+      glowAlpha = 0.17;
+    } else if (timeOfDayMinutes >= duskStart && timeOfDayMinutes < nightStart) {
+      const duskProgress = (timeOfDayMinutes - duskStart) / (nightStart - duskStart);
+      overlayAlpha = Phaser.Math.Linear(0.08, 0.22, duskProgress);
+      glowAlpha = Phaser.Math.Linear(0.17, 0.07, duskProgress);
+    }
 
     this.timeOfDayOverlay?.setAlpha(overlayAlpha);
     this.ambientGlow?.setAlpha(glowAlpha);
@@ -110,7 +127,12 @@ export class CageScene extends Phaser.Scene {
   private refreshStatus(): void {
     if (!this.statusText) return;
     const visible = this.simulation.getVisibleStats();
+    const simulationState = this.simulation.getState();
+    const clockHours = Math.floor(simulationState.timeOfDayMinutes / 60);
+    const clockMinutes = Math.floor(simulationState.timeOfDayMinutes % 60);
+
     this.statusText.setText([
+      `Day ${simulationState.day} - ${clockHours.toString().padStart(2, '0')}:${clockMinutes.toString().padStart(2, '0')}`,
       `Hunger: ${visible.hunger.toFixed(1)}`,
       `Mood: ${visible.mood.toFixed(1)}`,
       `Health: ${visible.health.toFixed(1)}`,
