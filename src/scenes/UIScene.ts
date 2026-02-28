@@ -40,12 +40,17 @@ export class UIScene extends Phaser.Scene {
       color: '#f7f7f7',
     });
 
-    this.debugHintText = this.add.text(625, 10, '[` DEBUG]', {
+    const debugHintCopy = this.sys.game.device.input.touch ? '[DEBUG TAP]' : '[` DEBUG]';
+    this.debugHintText = this.add.text(625, 10, debugHintCopy, {
       fontFamily: 'monospace',
       fontSize: '12px',
       color: '#00ff99',
     });
     this.debugHintText.setOrigin(1, 0);
+    this.debugHintText.setInteractive({ useHandCursor: true });
+    this.debugHintText.on('pointerdown', () => {
+      this.toggleDebugPanel();
+    });
 
     this.debugStatusText = this.add.text(16, 30, 'DEBUG: OFF', {
       fontFamily: 'monospace',
