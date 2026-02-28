@@ -89,6 +89,7 @@ export class UIScene extends Phaser.Scene {
     this.currentDialog = dialog;
     this.currentDialogPage = 0;
     this.currentDialogEventId = eventId ?? null;
+    this.dialogBackdrop?.setInteractive();
     this.dialogModal?.setVisible(true);
     this.renderDialog();
     console.info('[dialog]', dialog.id, dialog.title);
@@ -165,6 +166,7 @@ export class UIScene extends Phaser.Scene {
     this.currentDialogPage = 0;
     this.currentDialogEventId = null;
     this.renderDialogOptions([]);
+    this.dialogBackdrop?.disableInteractive();
     this.dialogModal?.setVisible(false);
   }
 
@@ -236,6 +238,7 @@ export class UIScene extends Phaser.Scene {
 
     this.dialogModal.setDepth(30);
     this.dialogModal.setVisible(false);
+    this.dialogBackdrop.disableInteractive();
   }
 
   private createDebugOverlay(): void {
