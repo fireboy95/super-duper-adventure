@@ -12,6 +12,7 @@ interface RawDialogEntry {
   title?: unknown;
   speaker?: unknown;
   pages?: unknown;
+  pageVariants?: unknown;
   options?: unknown;
 }
 
@@ -53,6 +54,7 @@ export interface DialogEntry {
   title: string;
   speaker: string;
   pages: string[];
+  pageVariants?: string[][];
   options: DialogOption[];
 }
 
@@ -83,7 +85,16 @@ export class DialogueSystem {
   }
 
   getById(id: string): DialogEntry | null {
-    return this.dialogMap.get(id) ?? null;
+    const dialog = this.dialogMap.get(id);
+    if (!dialog) return null;
+
+    const variantPool = [dialog.pages, ...(dialog.pageVariants ?? [])];
+    const selectedPages = variantPool[Math.floor(Math.random() * variantPool.length)] ?? dialog.pages;
+
+    return {
+      ...dialog,
+      pages: [...selectedPages],
+    };
   }
 
   private parseDialogs(source: unknown): DialogEntry[] {
@@ -123,8 +134,24 @@ export class DialogueSystem {
       title: raw.title,
       speaker: raw.speaker,
       pages: raw.pages,
+      pageVariants: this.parsePageVariants(raw.pageVariants, raw.id),
       options,
     };
+  }
+
+  private parsePageVariants(raw: unknown, dialogId: string): string[][] | undefined {
+    if (!Array.isArray(raw)) return undefined;
+
+    const parsed: string[][] = [];
+    for (const variant of raw) {
+      if (!Array.isArray(variant) || variant.length === 0 || variant.some((page) => typeof page !== 'string')) {
+        console.warn(`[dialog] Dialog "${dialogId}" has an invalid page variant, skipping.`, variant);
+        continue;
+      }
+      parsed.push(variant);
+    }
+
+    return parsed.length > 0 ? parsed : undefined;
   }
 
   private parseOption(dialogId: string, raw: RawDialogOption): DialogOption | null {
