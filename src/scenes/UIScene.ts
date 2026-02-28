@@ -1,10 +1,9 @@
 import Phaser from 'phaser';
-import { DialogueSystem } from '../systems/DialogueSystem';
+import { DialogEntry, DialogOption, DialogueSystem } from '../systems/DialogueSystem';
 import { DebugConsoleEntry, debugConsole } from '../systems/DebugConsole';
 
 export class UIScene extends Phaser.Scene {
   private dialogueSystem = new DialogueSystem();
-  private dialogText?: Phaser.GameObjects.Text;
   private debugPanel?: Phaser.GameObjects.Container;
   private debugText?: Phaser.GameObjects.Text;
   private debugHintText?: Phaser.GameObjects.Text;
@@ -14,6 +13,18 @@ export class UIScene extends Phaser.Scene {
   private debugButton?: Phaser.GameObjects.Container;
   private isDebugOpen = false;
   private unsubscribeDebug?: () => void;
+
+  private dialogModal?: Phaser.GameObjects.Container;
+  private dialogBackdrop?: Phaser.GameObjects.Rectangle;
+  private dialogPanel?: Phaser.GameObjects.Rectangle;
+  private dialogTitleText?: Phaser.GameObjects.Text;
+  private dialogSpeakerText?: Phaser.GameObjects.Text;
+  private dialogPageText?: Phaser.GameObjects.Text;
+  private dialogPageIndicatorText?: Phaser.GameObjects.Text;
+  private dialogAdvanceButton?: Phaser.GameObjects.Container;
+  private dialogOptionButtons: Phaser.GameObjects.Container[] = [];
+  private currentDialog: DialogEntry | null = null;
+  private currentDialogPage = 0;
 
   constructor() {
     super('UIScene');
@@ -40,14 +51,8 @@ export class UIScene extends Phaser.Scene {
       color: '#00ff99',
     });
 
-    this.dialogText = this.add.text(20, 420, '', {
-      fontFamily: 'monospace',
-      fontSize: '13px',
-      color: '#f6f6f6',
-      wordWrap: { width: 600 },
-    });
-
     this.createTouchControls();
+    this.createDialogModal();
     this.layoutResponsiveUi(this.scale.width, this.scale.height);
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
 
@@ -64,11 +69,150 @@ export class UIScene extends Phaser.Scene {
   private bindDialogueEvents(): void {
     const cageScene = this.scene.get('CageScene');
     cageScene.events.on('dialog:show', (dialogId: string) => {
-      const dialog = this.dialogueSystem.getById(dialogId);
-      if (!dialog || !this.dialogText) return;
-      this.dialogText.setText(`${dialog.title} (${dialog.speaker}): ${dialog.pages[0]}`);
-      console.info('[dialog]', dialog.id, dialog.title);
+      this.openDialog(dialogId);
     });
+  }
+
+  private openDialog(dialogId: string): void {
+    const dialog = this.dialogueSystem.getById(dialogId);
+    if (!dialog) {
+      console.warn(`[dialog] Unknown dialog ID "${dialogId}" requested.`);
+      return;
+    }
+
+    this.currentDialog = dialog;
+    this.currentDialogPage = 0;
+    this.dialogModal?.setVisible(true);
+    this.renderDialog();
+    console.info('[dialog]', dialog.id, dialog.title);
+  }
+
+  private renderDialog(): void {
+    if (!this.currentDialog || !this.dialogTitleText || !this.dialogSpeakerText || !this.dialogPageText || !this.dialogPageIndicatorText) {
+      return;
+    }
+
+    const totalPages = this.currentDialog.pages.length;
+    const isFinalPage = this.currentDialogPage >= totalPages - 1;
+
+    this.dialogTitleText.setText(this.currentDialog.title);
+    this.dialogSpeakerText.setText(`Speaker: ${this.currentDialog.speaker}`);
+    this.dialogPageText.setText(this.currentDialog.pages[this.currentDialogPage] ?? '...');
+    this.dialogPageIndicatorText.setText(`Page ${this.currentDialogPage + 1}/${totalPages}`);
+
+    this.renderDialogOptions(isFinalPage ? this.currentDialog.options : []);
+    this.updateAdvanceButton(isFinalPage);
+  }
+
+  private renderDialogOptions(options: DialogOption[]): void {
+    for (const button of this.dialogOptionButtons) button.destroy();
+    this.dialogOptionButtons = [];
+
+    options.forEach((option, index) => {
+      const button = this.createModalButton(option.label, 0x284968, () => {
+        this.handleOptionSelection(option);
+      });
+      button.setPosition(0, 118 + index * 44);
+      this.dialogModal?.add(button);
+      this.dialogOptionButtons.push(button);
+    });
+  }
+
+  private handleOptionSelection(option: DialogOption): void {
+    const cageScene = this.scene.get('CageScene');
+
+    if (!option.effects) {
+      console.warn(`[dialog] Option "${option.id}" has no effects payload; closing dialog safely.`);
+      this.closeDialog();
+      return;
+    }
+
+    cageScene.events.emit('dialog:apply-effects', option.effects);
+
+    const followUpDialogId = option.effects.nextDialogId ?? option.effects.followUpDialogIds?.[0];
+    if (followUpDialogId) {
+      this.openDialog(followUpDialogId);
+      return;
+    }
+
+    this.closeDialog();
+  }
+
+  private closeDialog(): void {
+    this.currentDialog = null;
+    this.currentDialogPage = 0;
+    this.renderDialogOptions([]);
+    this.dialogModal?.setVisible(false);
+  }
+
+  private updateAdvanceButton(isFinalPage: boolean): void {
+    if (!this.dialogAdvanceButton) return;
+
+    const labelText = this.dialogAdvanceButton.list[1] as Phaser.GameObjects.Text;
+    labelText.setText(isFinalPage ? 'CLOSE' : 'NEXT');
+
+    this.dialogAdvanceButton.removeAllListeners();
+    this.dialogAdvanceButton.on('pointerdown', () => {
+      if (!this.currentDialog) {
+        this.closeDialog();
+        return;
+      }
+
+      if (isFinalPage) {
+        this.closeDialog();
+      } else {
+        this.currentDialogPage += 1;
+        this.renderDialog();
+      }
+    });
+  }
+
+  private createDialogModal(): void {
+    this.dialogBackdrop = this.add.rectangle(320, 240, 640, 480, 0x000000, 0.5).setInteractive();
+    this.dialogPanel = this.add.rectangle(320, 240, 520, 320, 0x13161d, 0.94);
+    this.dialogPanel.setStrokeStyle(2, 0xc9dbff, 0.9);
+
+    this.dialogTitleText = this.add.text(90, 106, '', {
+      fontFamily: 'monospace',
+      fontSize: '18px',
+      color: '#f7f7f7',
+    });
+
+    this.dialogSpeakerText = this.add.text(90, 133, '', {
+      fontFamily: 'monospace',
+      fontSize: '12px',
+      color: '#bbcae8',
+    });
+
+    this.dialogPageText = this.add.text(90, 168, '', {
+      fontFamily: 'monospace',
+      fontSize: '14px',
+      color: '#ffffff',
+      wordWrap: { width: 455 },
+      lineSpacing: 3,
+    });
+
+    this.dialogPageIndicatorText = this.add.text(90, 280, '', {
+      fontFamily: 'monospace',
+      fontSize: '11px',
+      color: '#9faeca',
+    });
+
+    this.dialogAdvanceButton = this.createModalButton('NEXT', 0x474c57, () => undefined);
+    this.dialogAdvanceButton.setPosition(0, 146);
+
+    this.dialogModal = this.add.container(0, 0, [
+      this.dialogBackdrop,
+      this.dialogPanel,
+      this.dialogTitleText,
+      this.dialogSpeakerText,
+      this.dialogPageText,
+      this.dialogPageIndicatorText,
+      this.dialogAdvanceButton,
+    ]);
+
+    this.dialogModal.setDepth(30);
+    this.dialogModal.setVisible(false);
   }
 
   private createDebugOverlay(): void {
@@ -171,6 +315,38 @@ export class UIScene extends Phaser.Scene {
     return button;
   }
 
+  private createModalButton(label: string, color: number, onPress: () => void): Phaser.GameObjects.Container {
+    const background = this.add.rectangle(320, 0, 420, 34, color, 0.95);
+    background.setStrokeStyle(1, 0xe6f0ff, 0.75);
+
+    const text = this.add.text(320, 0, label, {
+      fontFamily: 'monospace',
+      fontSize: '13px',
+      color: '#ffffff',
+    });
+    text.setOrigin(0.5);
+
+    const button = this.add.container(0, 0, [background, text]);
+    button.setSize(420, 34);
+    button.setInteractive(new Phaser.Geom.Rectangle(110, -17, 420, 34), Phaser.Geom.Rectangle.Contains);
+    button.input!.cursor = 'pointer';
+
+    button.on('pointerdown', () => {
+      onPress();
+      background.setFillStyle(0x1f1f1f, 0.96);
+    });
+
+    button.on('pointerup', () => {
+      background.setFillStyle(color, 0.95);
+    });
+
+    button.on('pointerout', () => {
+      background.setFillStyle(color, 0.95);
+    });
+
+    return button;
+  }
+
   private handleResize(gameSize: Phaser.Structs.Size): void {
     this.layoutResponsiveUi(gameSize.width, gameSize.height);
   }
@@ -192,11 +368,6 @@ export class UIScene extends Phaser.Scene {
       this.debugButton.setPosition(width - horizontalPadding - 68, height - controlsBottomOffset);
     }
 
-    if (this.dialogText) {
-      this.dialogText.setPosition(20, height - 70);
-      this.dialogText.setWordWrapWidth(Math.max(280, width - 40));
-    }
-
     if (this.debugHintText) {
       this.debugHintText.setPosition(width - 15, 10);
     }
@@ -204,5 +375,8 @@ export class UIScene extends Phaser.Scene {
     if (this.debugStatusText) {
       this.debugStatusText.setPosition(16, 28);
     }
+
+    this.dialogBackdrop?.setPosition(width / 2, height / 2).setSize(width, height);
+    this.dialogPanel?.setPosition(width / 2, height / 2).setSize(Math.min(560, width - 28), Math.min(330, height - 70));
   }
 }

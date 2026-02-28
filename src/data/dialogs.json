@@ -8,8 +8,50 @@
       "Consider reducing sugary treats for a while."
     ],
     "options": [
-      { "id": "opt_ok", "label": "OK" },
-      { "id": "opt_ignore", "label": "Ignore" }
+      {
+        "id": "opt_acknowledge",
+        "label": "Switch to regular food",
+        "effects": {
+          "stats": {
+            "stress": -4,
+            "health": 2,
+            "mood": -1
+          },
+          "flags": {
+            "hyperactive": false
+          },
+          "memory": {
+            "positiveInteractions": 1
+          },
+          "progression": {
+            "seenDialogIdsAdd": ["dlg_sweets_warning_1"],
+            "seenEventIdsAdd": ["evt_sweets_warning"]
+          }
+        }
+      },
+      {
+        "id": "opt_ignore",
+        "label": "Ignore it",
+        "effects": {
+          "stats": {
+            "stress": 6,
+            "health": -3,
+            "mood": 2
+          },
+          "flags": {
+            "hyperactive": true,
+            "mildIllness": true
+          },
+          "memory": {
+            "negativeInteractions": 1,
+            "grudge": 2
+          },
+          "progression": {
+            "seenDialogIdsAdd": ["dlg_sweets_warning_1"]
+          },
+          "followUpDialogIds": ["dlg_dirty_cage_1"]
+        }
+      }
     ]
   },
   {
@@ -21,8 +63,41 @@
       "Filth increases stress and illness risk."
     ],
     "options": [
-      { "id": "opt_clean_now", "label": "Clean Now" },
-      { "id": "opt_later", "label": "Later" }
+      {
+        "id": "opt_clean_now",
+        "label": "Clean now",
+        "effects": {
+          "stats": {
+            "stress": -5,
+            "mood": 3
+          },
+          "memory": {
+            "positiveInteractions": 1
+          },
+          "progression": {
+            "daysSurvivedDelta": 0,
+            "seenDialogIdsAdd": ["dlg_dirty_cage_1"]
+          }
+        }
+      },
+      {
+        "id": "opt_later",
+        "label": "Later",
+        "effects": {
+          "stats": {
+            "stress": 3,
+            "health": -2
+          },
+          "memory": {
+            "negativeInteractions": 1,
+            "grudge": 1
+          },
+          "progression": {
+            "seenDialogIdsAdd": ["dlg_dirty_cage_1"]
+          },
+          "nextDialogId": null
+        }
+      }
     ]
   }
 ]
