@@ -2,19 +2,25 @@ import Phaser from 'phaser';
 import { DialogEntry, DialogOption, DialogueSystem } from '../systems/DialogueSystem';
 import { DebugConsoleEntry, debugConsole } from '../systems/DebugConsole';
 
+type TopMenuKey = 'feed' | 'care' | 'social';
+
 export class UIScene extends Phaser.Scene {
   private dialogueSystem = new DialogueSystem();
   private hudText?: Phaser.GameObjects.Text;
   private debugPanel?: Phaser.GameObjects.Container;
+  private debugBackground?: Phaser.GameObjects.Rectangle;
   private debugText?: Phaser.GameObjects.Text;
+  private debugTitle?: Phaser.GameObjects.Text;
   private debugHintText?: Phaser.GameObjects.Text;
   private debugStatusText?: Phaser.GameObjects.Text;
-  private feedButton?: Phaser.GameObjects.Container;
-  private cleanButton?: Phaser.GameObjects.Container;
-  private debugButton?: Phaser.GameObjects.Container;
-  private sweetButton?: Phaser.GameObjects.Container;
-  private waterButton?: Phaser.GameObjects.Container;
-  private handleButton?: Phaser.GameObjects.Container;
+  private debugVisibleLines = 8;
+
+  private menuBar?: Phaser.GameObjects.Container;
+  private subMenuBar?: Phaser.GameObjects.Container;
+  private topMenuButtons = new Map<TopMenuKey, Phaser.GameObjects.Container>();
+  private subActionButtons = new Map<string, Phaser.GameObjects.Container>();
+  private activeMenu: TopMenuKey | null = null;
+
   private feedButtonDisabled = false;
   private sweetButtonDisabled = false;
   private isDebugOpen = false;
@@ -83,16 +89,15 @@ export class UIScene extends Phaser.Scene {
     });
   }
 
-
   private bindHudEvents(): void {
     const cageScene = this.scene.get('CageScene');
     cageScene.events.on('hud:update', (payload: { hunger: number; thirst: number; energy: number; health: number; cleanliness: number; mood: number; foodStandard?: number; foodSweet?: number }) => {
       this.hudText?.setText(
-        `H ${payload.hunger.toFixed(0)}  T ${payload.thirst.toFixed(0)}  E ${payload.energy.toFixed(0)}  HP ${payload.health.toFixed(0)}\nClean ${payload.cleanliness.toFixed(0)}  Mood ${payload.mood.toFixed(0)}`
+        `H ${payload.hunger.toFixed(0)}  T ${payload.thirst.toFixed(0)}  E ${payload.energy.toFixed(0)}  HP ${payload.health.toFixed(0)}\nClean ${payload.cleanliness.toFixed(0)}  Mood ${payload.mood.toFixed(0)}`,
       );
 
-      this.setActionButtonDisabled(this.feedButton, (payload.foodStandard ?? 0) <= 0, 0x306a43);
-      this.setActionButtonDisabled(this.sweetButton, (payload.foodSweet ?? 0) <= 0, 0x6e3e8c);
+      this.setActionButtonDisabled(this.subActionButtons.get('feed-standard'), (payload.foodStandard ?? 0) <= 0, 0x306a43);
+      this.setActionButtonDisabled(this.subActionButtons.get('feed-sweet'), (payload.foodSweet ?? 0) <= 0, 0x6e3e8c);
     });
   }
 
@@ -121,7 +126,6 @@ export class UIScene extends Phaser.Scene {
     this.dialogBackdrop?.setInteractive();
     this.dialogModal?.setVisible(true);
     this.renderDialog();
-    console.info('[dialog]', dialog.id, dialog.title);
   }
 
   private renderDialog(): void {
@@ -159,7 +163,6 @@ export class UIScene extends Phaser.Scene {
     const cageScene = this.scene.get('CageScene');
 
     if (!option.effects) {
-      console.warn(`[dialog] Option "${option.id}" has no effects payload; closing dialog safely.`);
       this.closeDialog();
       return;
     }
@@ -176,7 +179,6 @@ export class UIScene extends Phaser.Scene {
       }
       progression.ignoredEventIdsAdd = ignoredEventIdsAdd;
       optionEffects.progression = progression;
-      console.debug(`[dialog] Option "${option.id}" marked ignore for event "${this.currentDialogEventId}".`);
     }
 
     cageScene.events.emit('dialog:apply-effects', optionEffects);
@@ -275,16 +277,16 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createDebugOverlay(): void {
-    const background = this.add.rectangle(320, 140, 620, 220, 0x000000, 0.82);
-    background.setStrokeStyle(2, 0x00ff99, 0.75);
+    this.debugBackground = this.add.rectangle(0, 0, 620, 220, 0x000000, 0.82).setOrigin(0);
+    this.debugBackground.setStrokeStyle(2, 0x00ff99, 0.75);
 
-    const title = this.add.text(24, 40, 'DEBUG CONSOLE // QUAKE MODE', {
+    this.debugTitle = this.add.text(12, 10, 'DEBUG CONSOLE // QUAKE MODE', {
       fontFamily: 'monospace',
       fontSize: '14px',
       color: '#00ff99',
     });
 
-    this.debugText = this.add.text(24, 62, '', {
+    this.debugText = this.add.text(12, 34, '', {
       fontFamily: 'monospace',
       fontSize: '12px',
       color: '#d3ffd8',
@@ -292,7 +294,8 @@ export class UIScene extends Phaser.Scene {
       lineSpacing: 3,
     });
 
-    this.debugPanel = this.add.container(0, 0, [background, title, this.debugText]);
+    this.debugPanel = this.add.container(0, 0, [this.debugBackground, this.debugTitle, this.debugText]);
+    this.debugPanel.setDepth(20);
     this.debugPanel.setVisible(false);
 
     this.unsubscribeDebug = debugConsole.subscribe((entries) => {
@@ -313,91 +316,123 @@ export class UIScene extends Phaser.Scene {
     this.debugHintText?.setColor(this.isDebugOpen ? '#ffffff' : '#00ff99');
     this.debugStatusText?.setText(`DEBUG: ${this.isDebugOpen ? 'ON' : 'OFF'}`);
     this.debugStatusText?.setColor(this.isDebugOpen ? '#ffffff' : '#00ff99');
-    console.log(`[debug] Console ${this.isDebugOpen ? 'opened' : 'closed'}`);
   }
 
   private renderDebugEntries(entries: DebugConsoleEntry[]): void {
     if (!this.debugText) return;
     const lines = entries
-      .slice(-8)
+      .slice(-this.debugVisibleLines)
       .map((entry) => `[${entry.timestamp}] ${entry.level.toUpperCase().padEnd(5)} ${entry.message}`);
 
     this.debugText.setText(lines.join('\n'));
   }
 
   private createTouchControls(): void {
-    this.feedButton = this.createActionButton('FEED', 0x306a43, () => {
-      if (this.feedButtonDisabled) return;
-      this.sound.play('ui-click', { volume: 0.25 });
-      this.scene.get('CageScene').events.emit('action:feed');
-    });
+    this.menuBar = this.add.container(0, 0);
+    this.subMenuBar = this.add.container(0, 0);
 
-    this.sweetButton = this.createActionButton('SWEET', 0x6e3e8c, () => {
-      if (this.sweetButtonDisabled) return;
-      this.sound.play('ui-click', { volume: 0.25 });
-      this.scene.get('CageScene').events.emit('action:feed-sweet');
-    });
+    const topMenus: Array<{ key: TopMenuKey; icon: string; label: string; color: number }> = [
+      { key: 'feed', icon: '🍽', label: 'FEED', color: 0x306a43 },
+      { key: 'care', icon: '🧹', label: 'CARE', color: 0x365f82 },
+      { key: 'social', icon: '🤝', label: 'SOCIAL', color: 0x7a5738 },
+    ];
 
-    this.waterButton = this.createActionButton('WATER', 0x2e6f95, () => {
-      this.sound.play('ui-click', { volume: 0.25 });
-      this.scene.get('CageScene').events.emit('action:refill-water');
-    });
+    for (const menu of topMenus) {
+      const button = this.createActionButton(menu.icon, menu.label, menu.color, () => {
+        this.sound.play('ui-click', { volume: 0.24 });
+        this.toggleActionSubmenu(menu.key);
+      });
+      this.topMenuButtons.set(menu.key, button);
+      this.menuBar.add(button);
+    }
 
-    this.handleButton = this.createActionButton('HANDLE', 0x7a5738, () => {
-      this.sound.play('ui-click', { volume: 0.25 });
-      this.scene.get('CageScene').events.emit('action:handle');
-    });
+    const actions: Array<{ key: string; menu: TopMenuKey; icon: string; label: string; color: number; onPress: () => void }> = [
+      { key: 'feed-standard', menu: 'feed', icon: '🥣', label: 'STANDARD', color: 0x306a43, onPress: () => this.scene.get('CageScene').events.emit('action:feed') },
+      { key: 'feed-sweet', menu: 'feed', icon: '🍬', label: 'SWEET', color: 0x6e3e8c, onPress: () => this.scene.get('CageScene').events.emit('action:feed-sweet') },
+      { key: 'refill-water', menu: 'feed', icon: '💧', label: 'WATER', color: 0x2e6f95, onPress: () => this.scene.get('CageScene').events.emit('action:refill-water') },
+      { key: 'clean', menu: 'care', icon: '🧽', label: 'CLEAN', color: 0x365f82, onPress: () => this.scene.get('CageScene').events.emit('action:clean') },
+      { key: 'handle', menu: 'social', icon: '🐹', label: 'HANDLE', color: 0x7a5738, onPress: () => this.scene.get('CageScene').events.emit('action:handle') },
+    ];
 
-    this.cleanButton = this.createActionButton('CLEAN', 0x365f82, () => {
-      this.sound.play('ui-click', { volume: 0.25 });
-      this.scene.get('CageScene').events.emit('action:clean');
-    });
+    for (const action of actions) {
+      const button = this.createActionButton(action.icon, action.label, action.color, () => {
+        if (action.key === 'feed-standard' && this.feedButtonDisabled) return;
+        if (action.key === 'feed-sweet' && this.sweetButtonDisabled) return;
+        this.sound.play('ui-click', { volume: 0.25 });
+        action.onPress();
+      });
+      button.setData('menu', action.menu);
+      this.subActionButtons.set(action.key, button);
+      this.subMenuBar.add(button);
+    }
 
-    this.debugButton = this.createActionButton('DEBUG', 0x5e4168, () => {
-      this.sound.play('ui-click', { volume: 0.22 });
-      this.toggleDebugPanel();
-    });
+    this.setActionButtonDisabled(this.subActionButtons.get('feed-standard'), false, 0x306a43);
+    this.setActionButtonDisabled(this.subActionButtons.get('feed-sweet'), false, 0x6e3e8c);
+    this.toggleActionSubmenu('feed');
+  }
 
-    this.setActionButtonDisabled(this.feedButton, false, 0x306a43);
-    this.setActionButtonDisabled(this.sweetButton, false, 0x6e3e8c);
+  private toggleActionSubmenu(menu: TopMenuKey): void {
+    this.activeMenu = this.activeMenu === menu ? null : menu;
+
+    for (const [key, button] of this.topMenuButtons.entries()) {
+      const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
+      background?.setStrokeStyle(2, key === this.activeMenu ? 0xfff7ba : 0xeeeeee, key === this.activeMenu ? 1 : 0.9);
+    }
+
+    for (const button of this.subActionButtons.values()) {
+      const isVisible = button.getData('menu') === this.activeMenu;
+      button.setVisible(isVisible);
+      button.setActive(isVisible);
+      const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
+      if (isVisible) {
+        background?.setInteractive({ useHandCursor: true });
+        button.setAlpha(0.94);
+      } else {
+        background?.disableInteractive();
+      }
+    }
+
+    this.layoutResponsiveUi(this.scale.width, this.scale.height);
   }
 
   private setActionButtonDisabled(button: Phaser.GameObjects.Container | undefined, isDisabled: boolean, enabledColor: number): void {
     if (!button) return;
     const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
-    const text = button.list[1] as Phaser.GameObjects.Text | undefined;
+    const labels = button.list.filter((entry): entry is Phaser.GameObjects.Text => entry instanceof Phaser.GameObjects.Text);
     if (!background) return;
 
     background.disableInteractive();
-    if (!isDisabled) {
+    if (!isDisabled && button.visible) {
       background.setInteractive({ useHandCursor: true });
     }
 
     background.setFillStyle(isDisabled ? 0x3a3a3a : enabledColor, isDisabled ? 0.65 : 0.92);
-    text?.setAlpha(isDisabled ? 0.45 : 1);
+    labels.forEach((label) => label.setAlpha(isDisabled ? 0.45 : 1));
 
-    if (button === this.feedButton) {
-      this.feedButtonDisabled = isDisabled;
-    }
-
-    if (button === this.sweetButton) {
-      this.sweetButtonDisabled = isDisabled;
-    }
+    if (button === this.subActionButtons.get('feed-standard')) this.feedButtonDisabled = isDisabled;
+    if (button === this.subActionButtons.get('feed-sweet')) this.sweetButtonDisabled = isDisabled;
   }
 
-  private createActionButton(label: string, color: number, onPress: () => void): Phaser.GameObjects.Container {
+  private createActionButton(icon: string, label: string, color: number, onPress: () => void): Phaser.GameObjects.Container {
     const background = this.add.rectangle(0, 0, 136, 44, color, 0.92);
     background.setStrokeStyle(2, 0xeeeeee, 0.9);
     background.setInteractive({ useHandCursor: true });
 
-    const text = this.add.text(0, 0, label, {
+    const iconText = this.add.text(-44, 0, icon, {
+      fontFamily: 'sans-serif',
+      fontSize: '18px',
+      color: '#ffffff',
+    });
+    iconText.setOrigin(0.5);
+
+    const text = this.add.text(12, 0, label, {
       fontFamily: 'monospace',
-      fontSize: '16px',
+      fontSize: '14px',
       color: '#ffffff',
     });
     text.setOrigin(0.5);
 
-    const button = this.add.container(0, 0, [background, text]);
+    const button = this.add.container(0, 0, [background, iconText, text]);
     button.setSize(136, 44);
 
     background.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
@@ -455,36 +490,42 @@ export class UIScene extends Phaser.Scene {
 
   private layoutResponsiveUi(width: number, height: number): void {
     const isNarrow = width < 900;
-    const columns = isNarrow ? 2 : 6;
-    const gap = isNarrow ? 10 : 12;
     const sidePadding = isNarrow ? 12 : 14;
     const topPadding = 10;
+    const gap = isNarrow ? 10 : 12;
 
+    const topButtons = Array.from(this.topMenuButtons.values());
+    const columns = Math.max(1, topButtons.length);
     const availableWidth = width - sidePadding * 2 - gap * (columns - 1);
-    const buttonWidth = Math.max(isNarrow ? 116 : 108, Math.floor(availableWidth / columns));
-    const buttonHeight = isNarrow ? 54 : 44;
+    const topButtonWidth = Math.max(isNarrow ? 110 : 120, Math.floor(availableWidth / columns));
+    const topButtonHeight = isNarrow ? 50 : 44;
 
-    const buttons = [this.feedButton, this.sweetButton, this.waterButton, this.handleButton, this.cleanButton, this.debugButton].filter(
-      (button): button is Phaser.GameObjects.Container => Boolean(button)
-    );
-
-    buttons.forEach((button, index) => {
-      const col = index % columns;
-      const row = Math.floor(index / columns);
-      const x = sidePadding + col * (buttonWidth + gap) + buttonWidth / 2;
-      const y = height - 20 - (buttons.length > columns ? (1 - row) * (buttonHeight + gap) : 0);
-
+    topButtons.forEach((button, index) => {
+      const x = sidePadding + index * (topButtonWidth + gap) + topButtonWidth / 2;
+      const y = height - 24;
       const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
-      const text = button.list[1] as Phaser.GameObjects.Text | undefined;
-
-      background?.setSize(buttonWidth, buttonHeight);
-      text?.setFontSize(isNarrow ? '18px' : '16px');
-      button.setSize(buttonWidth, buttonHeight);
+      background?.setSize(topButtonWidth, topButtonHeight);
+      button.setSize(topButtonWidth, topButtonHeight);
       button.setPosition(x, y);
     });
 
-    const controlRows = Math.ceil(buttons.length / columns);
-    this.controlsAreaHeight = controlRows * buttonHeight + Math.max(0, controlRows - 1) * gap + 30;
+    const visibleSubButtons = Array.from(this.subActionButtons.values()).filter((button) => button.visible);
+    const subColumns = Math.max(1, Math.min(isNarrow ? 2 : 3, visibleSubButtons.length || 1));
+    const subAvailableWidth = width - sidePadding * 2 - gap * (subColumns - 1);
+    const subButtonWidth = Math.max(130, Math.floor(subAvailableWidth / subColumns));
+    const subY = height - (isNarrow ? 84 : 78);
+
+    visibleSubButtons.forEach((button, index) => {
+      const x = sidePadding + (index % subColumns) * (subButtonWidth + gap) + subButtonWidth / 2;
+      const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
+      const label = button.list[2] as Phaser.GameObjects.Text | undefined;
+      background?.setSize(subButtonWidth, 38);
+      label?.setFontSize(isNarrow ? '12px' : '13px');
+      button.setSize(subButtonWidth, 38);
+      button.setPosition(x, subY);
+    });
+
+    this.controlsAreaHeight = topButtonHeight + 64;
 
     if (this.hudBackground) {
       const hudHeight = isNarrow ? 68 : 52;
@@ -507,7 +548,18 @@ export class UIScene extends Phaser.Scene {
       this.debugStatusText.setFontSize(isNarrow ? '11px' : '12px');
     }
 
-    this.debugPanel?.setPosition(0, Math.max(0, isNarrow ? 20 : 0));
+    if (this.debugPanel && this.debugBackground && this.debugTitle && this.debugText) {
+      const hudBottom = topPadding + (isNarrow ? 68 : 52) + 8;
+      const debugWidth = Math.max(250, width - 24);
+      const debugMaxHeight = Math.max(120, height - this.controlsAreaHeight - hudBottom - 8);
+      const debugHeight = Math.min(isNarrow ? 200 : 240, debugMaxHeight);
+      this.debugPanel.setPosition(12, hudBottom);
+      this.debugBackground.setSize(debugWidth, debugHeight);
+      this.debugTitle.setPosition(12, 10);
+      this.debugText.setPosition(12, 34);
+      this.debugText.setWordWrapWidth(debugWidth - 24);
+      this.debugVisibleLines = Math.max(3, Math.floor((debugHeight - 48) / 20));
+    }
 
     const dialogWidth = Math.min(560, width - (isNarrow ? 20 : 28));
     const dialogHeight = Math.min(330, height - this.controlsAreaHeight - (isNarrow ? 24 : 40));

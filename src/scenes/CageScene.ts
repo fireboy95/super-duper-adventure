@@ -19,6 +19,9 @@ export class CageScene extends Phaser.Scene {
   private cageLabel?: Phaser.GameObjects.Text;
   private timeOfDayOverlay?: Phaser.GameObjects.Rectangle;
   private ambientGlow?: Phaser.GameObjects.Ellipse;
+  private moodAura?: Phaser.GameObjects.Ellipse;
+  private stressOverlay?: Phaser.GameObjects.Rectangle;
+  private grimeOverlay?: Phaser.GameObjects.Rectangle;
 
   constructor() {
     super('CageScene');
@@ -106,7 +109,10 @@ export class CageScene extends Phaser.Scene {
 
   private createAmbientEffects(): void {
     this.ambientGlow = this.add.ellipse(320, 215, 520, 180, 0xd5cb8d, 0.1);
+    this.moodAura = this.add.ellipse(320, 305, 210, 92, 0x9df8b4, 0.08);
+    this.grimeOverlay = this.add.rectangle(320, 240, 640, 480, 0x5e4932, 0);
     this.timeOfDayOverlay = this.add.rectangle(320, 240, 640, 480, 0x050927, 0.08);
+    this.stressOverlay = this.add.rectangle(320, 240, 640, 480, 0x4f1020, 0);
   }
 
   private updateAmbientLighting(): void {
@@ -135,6 +141,36 @@ export class CageScene extends Phaser.Scene {
 
     this.timeOfDayOverlay?.setAlpha(overlayAlpha);
     this.ambientGlow?.setAlpha(glowAlpha);
+
+    const state = this.simulation.getState();
+    const mood = state.hamster.stats.mood;
+    const stress = state.hamster.stats.stress;
+    const cleanliness = state.cage.cleanliness;
+    const health = state.hamster.stats.health;
+
+    const moodAlpha = Phaser.Math.Clamp((mood - 40) / 60, 0, 1) * 0.22;
+    const stressAlpha = Phaser.Math.Clamp((stress - 35) / 65, 0, 1) * 0.3;
+    const grimeAlpha = Phaser.Math.Clamp((60 - cleanliness) / 60, 0, 1) * 0.32;
+
+    const auraColor = mood >= 70 ? 0xa8ffbb : mood >= 55 ? 0x9de5ff : 0xffd59b;
+    this.moodAura?.setFillStyle(auraColor, moodAlpha);
+    this.stressOverlay?.setAlpha(stressAlpha);
+    this.grimeOverlay?.setAlpha(grimeAlpha);
+
+    if (this.hamster) {
+      const idleAnim = this.hamster.anims.get('hamster-idle');
+      if (idleAnim) {
+        this.hamster.anims.timeScale = stress > 65 ? 1.8 : state.hamster.stats.energy < 35 ? 0.65 : 1;
+      }
+
+      if (health < 40) {
+        this.hamster.setTint(0xd6b2b2);
+      } else if (stress > 70) {
+        this.hamster.setTint(0xffd7d7);
+      } else {
+        this.hamster.clearTint();
+      }
+    }
   }
 
   private createHamsterSprite(): void {
@@ -274,7 +310,10 @@ export class CageScene extends Phaser.Scene {
     }
 
     this.timeOfDayOverlay?.setPosition(width / 2, height / 2).setSize(width, height);
+    this.grimeOverlay?.setPosition(width / 2, height / 2).setSize(width, height);
+    this.stressOverlay?.setPosition(width / 2, height / 2).setSize(width, height);
     this.ambientGlow?.setPosition(width / 2, height / 2 - 25).setSize(Math.max(320, width * 0.82), Math.max(140, height * 0.36));
+    this.moodAura?.setPosition(width / 2, Math.min(height - (isNarrow ? 176 : 186), height * 0.62) + 10).setSize(Math.max(170, width * 0.32), 96);
     this.hamster?.setPosition(width / 2, Math.min(height - (isNarrow ? 170 : 185), height * 0.62));
 
     this.cageLabel?.setPosition(20, 20).setFontSize(isNarrow ? '14px' : '16px');
