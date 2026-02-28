@@ -45,12 +45,18 @@ export class CageScene extends Phaser.Scene {
     });
 
     this.events.on('action:feed', this.handleFeedAction, this);
+    this.events.on('action:feed-sweet', this.handleFeedSweetAction, this);
+    this.events.on('action:refill-water', this.handleRefillWaterAction, this);
+    this.events.on('action:handle', this.handleHandleAction, this);
     this.events.on('action:clean', this.handleCleanAction, this);
     this.events.on('dialog:apply-effects', this.handleDialogEffects, this);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.saveCurrentState();
       this.events.off('action:feed', this.handleFeedAction, this);
+      this.events.off('action:feed-sweet', this.handleFeedSweetAction, this);
+      this.events.off('action:refill-water', this.handleRefillWaterAction, this);
+      this.events.off('action:handle', this.handleHandleAction, this);
       this.events.off('action:clean', this.handleCleanAction, this);
       this.events.off('dialog:apply-effects', this.handleDialogEffects, this);
     });
@@ -183,6 +189,8 @@ export class CageScene extends Phaser.Scene {
       health: visible.health,
       cleanliness: visible.cleanliness,
       mood: visible.mood,
+      foodStandard: simulationState.inventory.food_standard ?? 0,
+      foodSweet: simulationState.inventory.food_sweet ?? 0,
     });
   }
 
@@ -196,6 +204,25 @@ export class CageScene extends Phaser.Scene {
     this.sound.play('ui-click', { volume: 0.35 });
     this.simulation.applyPlayerAction('clean_cage');
     this.animateReaction(0x7ad9ff);
+  }
+
+  private handleFeedSweetAction(): void {
+    if ((this.simulation.getState().inventory.food_sweet ?? 0) <= 0) return;
+    this.sound.play('hamster-squeak', { volume: 0.45 });
+    this.simulation.applyPlayerAction('feed_sweet');
+    this.animateReaction(0xc184ff);
+  }
+
+  private handleRefillWaterAction(): void {
+    this.sound.play('ui-click', { volume: 0.35 });
+    this.simulation.applyPlayerAction('refill_water');
+    this.animateReaction(0x86d9ff);
+  }
+
+  private handleHandleAction(): void {
+    this.sound.play('ui-click', { volume: 0.35 });
+    this.simulation.applyPlayerAction('handle_hamster');
+    this.animateReaction(0xffd087);
   }
 
 
