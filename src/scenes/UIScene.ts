@@ -656,9 +656,17 @@ export class UIScene extends Phaser.Scene {
   private resizeModalButton(button: Phaser.GameObjects.Container, width: number, fontSize: string): void {
     const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
     const label = button.list[1] as Phaser.GameObjects.Text | undefined;
-    background?.setSize(width, 34);
+    this.resizeInteractiveBackground(background, width, 34);
     label?.setFontSize(fontSize);
     button.setSize(width, 34);
+  }
+
+  private resizeInteractiveBackground(background: Phaser.GameObjects.Rectangle | undefined, width: number, height: number): void {
+    if (!background) return;
+
+    background.setSize(width, height);
+    const hitArea = background.input?.hitArea as Phaser.Geom.Rectangle | undefined;
+    hitArea?.setSize(width, height);
   }
 
   private handleResize(gameSize: Phaser.Structs.Size): void {
@@ -681,7 +689,7 @@ export class UIScene extends Phaser.Scene {
       const x = sidePadding + index * (topButtonWidth + gap) + topButtonWidth / 2;
       const y = height - 24;
       const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
-      background?.setSize(topButtonWidth, topButtonHeight);
+      this.resizeInteractiveBackground(background, topButtonWidth, topButtonHeight);
       button.setSize(topButtonWidth, topButtonHeight);
       button.setPosition(x, y);
     });
@@ -704,7 +712,7 @@ export class UIScene extends Phaser.Scene {
       const y = subTopY + row * (subButtonHeight + subRowGap);
       const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
       const label = button.list[2] as Phaser.GameObjects.Text | undefined;
-      background?.setSize(subButtonWidth, subButtonHeight);
+      this.resizeInteractiveBackground(background, subButtonWidth, subButtonHeight);
       label?.setFontSize(isNarrow ? '12px' : '13px');
       button.setSize(subButtonWidth, subButtonHeight);
       button.setPosition(x, y);
