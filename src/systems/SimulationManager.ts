@@ -14,7 +14,15 @@ export class SimulationManager {
     if (!this.state.hamster.alive) return;
 
     const deltaMinutes = deltaSeconds / 2;
-    this.state.timeOfDayMinutes = (this.state.timeOfDayMinutes + deltaMinutes) % MINUTES_PER_DAY;
+    const nextTimeOfDayMinutes = this.state.timeOfDayMinutes + deltaMinutes;
+
+    if (nextTimeOfDayMinutes >= MINUTES_PER_DAY) {
+      const elapsedDays = Math.floor(nextTimeOfDayMinutes / MINUTES_PER_DAY);
+      this.state.day += elapsedDays;
+      this.state.progression.daysSurvived += elapsedDays;
+    }
+
+    this.state.timeOfDayMinutes = nextTimeOfDayMinutes % MINUTES_PER_DAY;
 
     this.changeStat('hunger', 0.4 * deltaSeconds);
     this.changeStat('thirst', 0.45 * deltaSeconds);
@@ -86,7 +94,11 @@ export class SimulationManager {
     return this.state;
   }
 
-  private isNightTime(): boolean {
+  getTimeOfDayRatio(): number {
+    return this.state.timeOfDayMinutes / MINUTES_PER_DAY;
+  }
+
+  isNightTime(): boolean {
     return this.state.timeOfDayMinutes >= 20 * 60 || this.state.timeOfDayMinutes < 6 * 60;
   }
 
