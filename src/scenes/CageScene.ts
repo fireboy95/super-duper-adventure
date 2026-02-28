@@ -170,7 +170,8 @@ export class CageScene extends Phaser.Scene {
       `Energy: ${visible.energy.toFixed(1)}`,
       `Mood: ${visible.mood.toFixed(1)}`,
       `Health: ${visible.health.toFixed(1)}`,
-      `Cleanliness: ${visible.cleanliness.toFixed(1)}`,
+      `Cage Cleanliness: ${visible.cleanliness.toFixed(1)}${visible.cleanliness < 20 ? ' (critical)' : visible.cleanliness < 30 ? ' (filthy)' : visible.cleanliness < 50 ? ' (dirty)' : ''}`,
+      `Body Cleanliness: ${visible.cleanlinessBody.toFixed(1)}${visible.cleanlinessBody < 20 ? ' (very dirty)' : visible.cleanlinessBody < 40 ? ' (grimy)' : ''}`,
       `Stress: ${visible.stress.toFixed(1)} | Trust: ${visible.trust.toFixed(1)} | Grudge: ${visible.grudge.toFixed(1)}`,
       'Tap buttons (or left/right click): feed / clean',
     ]);

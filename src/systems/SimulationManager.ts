@@ -3,6 +3,8 @@ import type { DialogOptionEffects } from './DialogueSystem';
 import type { HamsterStats, PlayerActionType, SimulationState } from '../types/simulation';
 
 const MINUTES_PER_DAY = 24 * 60;
+const CAGE_DIRT_ACCUMULATION_PER_SECOND = 0.05;
+const BODY_CLEANLINESS_DECAY_PER_SECOND = 0.025;
 
 export class SimulationManager {
   private state: SimulationState;
@@ -36,9 +38,33 @@ export class SimulationManager {
     this.changeStat('thirst', 0.45 * deltaSeconds);
     this.changeStat('energy', this.isNightTime() ? -0.3 * deltaSeconds : 0.2 * deltaSeconds);
 
+    this.state.cage.cleanliness = clamp(this.state.cage.cleanliness - CAGE_DIRT_ACCUMULATION_PER_SECOND * deltaSeconds, 0, 100);
+    this.changeStat('cleanlinessBody', -BODY_CLEANLINESS_DECAY_PER_SECOND * deltaSeconds);
+
+    if (this.state.cage.cleanliness < 50) {
+      this.changeStat('stress', 0.08 * deltaSeconds);
+      this.changeStat('mood', -0.04 * deltaSeconds);
+    }
+
     if (this.state.cage.cleanliness < 30) {
       this.changeStat('health', -0.15 * deltaSeconds);
       this.changeStat('stress', 0.2 * deltaSeconds);
+    }
+
+    if (this.state.cage.cleanliness < 20) {
+      this.changeStat('health', -0.18 * deltaSeconds);
+      this.changeStat('mood', -0.1 * deltaSeconds);
+      this.changeStat('stress', 0.12 * deltaSeconds);
+    }
+
+    if (this.state.hamster.stats.cleanlinessBody < 40) {
+      this.changeStat('mood', -0.08 * deltaSeconds);
+      this.changeStat('stress', 0.08 * deltaSeconds);
+    }
+
+    if (this.state.hamster.stats.cleanlinessBody < 20) {
+      this.changeStat('health', -0.08 * deltaSeconds);
+      this.changeStat('stress', 0.12 * deltaSeconds);
     }
 
     if (this.state.hamster.flags.hyperactive) {
@@ -189,6 +215,7 @@ export class SimulationManager {
 
   getVisibleStats(): Pick<HamsterStats, 'hunger' | 'thirst' | 'energy' | 'mood' | 'health'> & {
     cleanliness: number;
+    cleanlinessBody: number;
     stress: number;
     trust: number;
     grudge: number;
@@ -200,6 +227,7 @@ export class SimulationManager {
       mood: this.state.hamster.stats.mood,
       health: this.state.hamster.stats.health,
       cleanliness: this.state.cage.cleanliness,
+      cleanlinessBody: this.state.hamster.stats.cleanlinessBody,
       stress: this.state.hamster.stats.stress,
       trust: this.state.hamster.stats.trust,
       grudge: this.state.hamster.memory.grudge,
