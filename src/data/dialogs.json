@@ -4,8 +4,10 @@
     "speaker": "Hamster Advisor",
     "title": "Diet Notice",
     "pages": [
-      "Your hamster seems unusually energetic.",
-      "Consider reducing sugary treats for a while."
+      "Sugar rush report: wheel activity hit absurd levels and then crashed hard.",
+      "The current snack pattern is pushing mood swings, messy sleep, and frantic grooming.",
+      "If you pivot to balanced food now, you can stabilize stress before it snowballs.",
+      "If you keep the candy stream flowing, prepare for chaos in a tiny furry body."
     ],
     "options": [
       {
@@ -88,6 +90,20 @@
           }
         }
       }
+    ],
+    "pageVariants": [
+      [
+        "Sugar rush report: wheel activity hit absurd levels and then crashed hard.",
+        "The current snack pattern is pushing mood swings, messy sleep, and frantic grooming.",
+        "If you pivot to balanced food now, you can stabilize stress before it snowballs.",
+        "If you keep the candy stream flowing, prepare for chaos in a tiny furry body."
+      ],
+      [
+        "Update from the feeding log: sweet treats outnumber regular pellets this cycle.",
+        "Short-term excitement looks cute, but internally it is reading like overstimulation.",
+        "Hydration and plain food can pull the hamster back into a calmer rhythm.",
+        "Ignoring this may chain into hygiene and trust events faster than usual."
+      ]
     ]
   },
   {
@@ -95,8 +111,10 @@
     "speaker": "System Message",
     "title": "Cleanliness Alert",
     "pages": [
-      "The bedding is starting to smell.",
-      "Filth increases stress and illness risk."
+      "Air quality check: bedding moisture and odor are climbing past comfort range.",
+      "Your hamster is still coping, but subtle stress behaviors are beginning to appear.",
+      "A quick clean now prevents the later expensive version of this exact problem.",
+      "Small maintenance beats emergency intervention every time."
     ],
     "options": [
       {
@@ -168,6 +186,20 @@
           }
         }
       }
+    ],
+    "pageVariants": [
+      [
+        "Air quality check: bedding moisture and odor are climbing past comfort range.",
+        "Your hamster is still coping, but subtle stress behaviors are beginning to appear.",
+        "A quick clean now prevents the later expensive version of this exact problem.",
+        "Small maintenance beats emergency intervention every time."
+      ],
+      [
+        "Housekeeping note: food crumbs and damp bedding are collecting near the nest edge.",
+        "No immediate catastrophe, but this is the textbook start of avoidable illness risk.",
+        "Refreshing substrate and wiping hotspots will lower tension and protect health.",
+        "Delay is possible, but the cost curve gets ugly quickly."
+      ]
     ]
   },
   {
@@ -175,8 +207,10 @@
     "speaker": "System Message",
     "title": "Cleanliness Warning Escalated",
     "pages": [
-      "Odor and waste are now severe.",
-      "Your hamster is showing signs of prolonged stress."
+      "Escalation detected: odor concentration is persistent even between activity cycles.",
+      "The hamster is conserving movement and showing signs of chronic environmental stress.",
+      "Deep cleaning now can still reverse most of the damage trajectory.",
+      "Further delay increases grudge, sickness chance, and recovery time."
     ],
     "options": [
       {
@@ -248,6 +282,20 @@
           }
         }
       }
+    ],
+    "pageVariants": [
+      [
+        "Escalation detected: odor concentration is persistent even between activity cycles.",
+        "The hamster is conserving movement and showing signs of chronic environmental stress.",
+        "Deep cleaning now can still reverse most of the damage trajectory.",
+        "Further delay increases grudge, sickness chance, and recovery time."
+      ],
+      [
+        "Sanitation status moved from warning to high-risk maintenance debt.",
+        "Nest materials are degraded, and the enclosure is no longer reliably restful.",
+        "A thorough reset of bedding, tray, and corners is strongly recommended.",
+        "Choosing later may trigger harsher follow-up events."
+      ]
     ]
   },
   {
@@ -255,8 +303,10 @@
     "speaker": "Emergency Monitor",
     "title": "Critical Hygiene Risk",
     "pages": [
-      "Conditions are now dangerous.",
-      "Immediate cleanup is required to avoid severe health harm."
+      "Critical threshold crossed: enclosure conditions are now actively harmful.",
+      "Breathing comfort, skin condition, and immune resilience are all at risk in this state.",
+      "Immediate full cleanup is the only safe option if you want recovery odds.",
+      "Any non-action choice now is effectively choosing damage."
     ],
     "options": [
       {
@@ -331,6 +381,20 @@
           }
         }
       }
+    ],
+    "pageVariants": [
+      [
+        "Critical threshold crossed: enclosure conditions are now actively harmful.",
+        "Breathing comfort, skin condition, and immune resilience are all at risk in this state.",
+        "Immediate full cleanup is the only safe option if you want recovery odds.",
+        "Any non-action choice now is effectively choosing damage."
+      ],
+      [
+        "Emergency sanitation bulletin: waste load and dampness are beyond tolerable limits.",
+        "The hamster is running out of adaptive capacity and may spiral fast.",
+        "You need decisive intervention: replace bedding, clear residue, restore dry zones.",
+        "Reminders and delays are no longer neutral\u2014they are harmful."
+      ]
     ]
   },
   {
@@ -338,8 +402,10 @@
     "speaker": "Behavior Monitor",
     "title": "Handling Resistance",
     "pages": [
-      "Your hamster is pulling away from your hands.",
-      "Trust is low and stress reactivity is rising."
+      "Behavior readout: your hamster flinched before contact and retreated to cover.",
+      "That pattern means handling is being encoded as pressure instead of safety.",
+      "Gentle distance, predictable routines, and low-force interactions can repair trust.",
+      "Forcing contact now may produce longer-term resistance."
     ],
     "options": [
       {
@@ -413,6 +479,20 @@
           }
         }
       }
+    ],
+    "pageVariants": [
+      [
+        "Behavior readout: your hamster flinched before contact and retreated to cover.",
+        "That pattern means handling is being encoded as pressure instead of safety.",
+        "Gentle distance, predictable routines, and low-force interactions can repair trust.",
+        "Forcing contact now may produce longer-term resistance."
+      ],
+      [
+        "Trust check failed: approach cues are triggering avoidance instead of curiosity.",
+        "This is often reversible, but only if you reduce intensity and reward calm moments.",
+        "Pause frequent handling and reintroduce it with softer signals.",
+        "Ignoring this trend can convert caution into lasting fear."
+      ]
     ]
   },
   {
@@ -420,8 +500,10 @@
     "speaker": "Behavior Monitor",
     "title": "Critical Trust Breakdown",
     "pages": [
-      "The hamster now anticipates handling as a threat.",
-      "Without gentler care, mood and health can spiral down."
+      "Critical social state: your hamster now expects negative outcomes during handling.",
+      "Grudge memory is dominating behavior, reducing mood and blocking trust recovery.",
+      "You can still recover with consistent low-stress care and patient repetition.",
+      "If you dismiss this, the relationship system may lock into harsher loops."
     ],
     "options": [
       {
@@ -496,6 +578,20 @@
           }
         }
       }
+    ],
+    "pageVariants": [
+      [
+        "Critical social state: your hamster now expects negative outcomes during handling.",
+        "Grudge memory is dominating behavior, reducing mood and blocking trust recovery.",
+        "You can still recover with consistent low-stress care and patient repetition.",
+        "If you dismiss this, the relationship system may lock into harsher loops."
+      ],
+      [
+        "Relationship failure warning: avoidance has become anticipatory, not situational.",
+        "Even neutral actions are being interpreted as potential threats.",
+        "A structured trust-repair routine can gradually rewrite those expectations.",
+        "Continued pressure will deepen the spiral and limit options later."
+      ]
     ]
   },
   {
@@ -503,8 +599,10 @@
     "speaker": "Cage Cam",
     "title": "Sunbeam Routine",
     "pages": [
-      "Your hamster found a warm strip of sunlight and stretched out with a tiny sigh.",
-      "No warning here\u2014just a calm moment that usually means comfort and trust are holding steady."
+      "Cage cam highlight: a long sunbeam nap with slow breathing and relaxed paws.",
+      "This usually appears when stress is controlled and environmental comfort is high.",
+      "No intervention needed; stability itself is progress in this simulation.",
+      "Documenting these quiet moments helps you spot early shifts when things change."
     ],
     "options": [
       {
@@ -525,6 +623,20 @@
           }
         }
       }
+    ],
+    "pageVariants": [
+      [
+        "Cage cam highlight: a long sunbeam nap with slow breathing and relaxed paws.",
+        "This usually appears when stress is controlled and environmental comfort is high.",
+        "No intervention needed; stability itself is progress in this simulation.",
+        "Documenting these quiet moments helps you spot early shifts when things change."
+      ],
+      [
+        "Routine wellness note: sun patch selected, loaf posture engaged, whiskers fully calm.",
+        "The hamster stayed in light sleep without abrupt wake responses.",
+        "That pattern suggests trust in surroundings and low perceived threat.",
+        "Sometimes the best care action is letting peace remain uninterrupted."
+      ]
     ]
   },
   {
@@ -532,8 +644,10 @@
     "speaker": "Habitat Note",
     "title": "Tidy Territory",
     "pages": [
-      "The nest corner is neatly arranged again\u2014your hamster has been doing little patrol-and-fluff passes.",
-      "Clean surroundings are reinforcing good habits, and the whole enclosure feels low tension."
+      "Habitat observation: nest materials were reorganized into a neat layered pocket.",
+      "Repeated tidy behavior points to agency, comfort, and manageable stress load.",
+      "Environmental order can reinforce better sleep and lower conflict behaviors.",
+      "Your maintenance consistency is quietly paying off."
     ],
     "options": [
       {
@@ -556,6 +670,20 @@
           }
         }
       }
+    ],
+    "pageVariants": [
+      [
+        "Habitat observation: nest materials were reorganized into a neat layered pocket.",
+        "Repeated tidy behavior points to agency, comfort, and manageable stress load.",
+        "Environmental order can reinforce better sleep and lower conflict behaviors.",
+        "Your maintenance consistency is quietly paying off."
+      ],
+      [
+        "Territory update: food stash sorted, bedding fluffed, tunnel entrance cleared.",
+        "These micro-routines are common in animals that feel reasonably secure.",
+        "No warning flags attached\u2014this is healthy background behavior.",
+        "You can treat this as a positive indicator for current care strategy."
+      ]
     ]
   },
   {
@@ -563,8 +691,10 @@
     "speaker": "Behavior Monitor",
     "title": "Curious Patrol",
     "pages": [
-      "Whiskers forward, your hamster made a full loop of the cage, checking each toy and tunnel entrance.",
-      "This kind of exploratory pacing usually appears when needs are met and stress remains manageable."
+      "Exploration log: complete perimeter patrol with repeated pauses at enrichment points.",
+      "Curiosity remained steady without panic darting or stress grooming spikes.",
+      "That balance signals needs are mostly met and energy is being used constructively.",
+      "Stable curiosity is one of your best nonverbal health indicators."
     ],
     "options": [
       {
@@ -581,6 +711,20 @@
           }
         }
       }
+    ],
+    "pageVariants": [
+      [
+        "Exploration log: complete perimeter patrol with repeated pauses at enrichment points.",
+        "Curiosity remained steady without panic darting or stress grooming spikes.",
+        "That balance signals needs are mostly met and energy is being used constructively.",
+        "Stable curiosity is one of your best nonverbal health indicators."
+      ],
+      [
+        "Behavior snapshot: whisker-forward inspection of tunnels, wheel, and feeding corner.",
+        "The hamster checked novelty items, then resumed normal pacing quickly.",
+        "This pattern maps to confident exploration rather than anxious scanning.",
+        "Keep routines predictable and enrichment varied to sustain it."
+      ]
     ]
   },
   {
@@ -588,8 +732,10 @@
     "speaker": "Room Audio",
     "title": "Soft Chatter",
     "pages": [
-      "A few quiet chirps came from the bedding while your hamster settled in after a snack.",
-      "Not a request, not a crisis\u2014just ambient chatter that tends to happen in stable routines."
+      "Audio monitor picked up gentle bedding chirps after a calm snack cycle.",
+      "No distress signatures detected\u2014volume and cadence look socially neutral to positive.",
+      "These tiny sounds often accompany routine comfort and low ambient stress.",
+      "Nothing urgent here, just evidence that the habitat currently feels safe."
     ],
     "options": [
       {
@@ -609,6 +755,20 @@
           }
         }
       }
+    ],
+    "pageVariants": [
+      [
+        "Audio monitor picked up gentle bedding chirps after a calm snack cycle.",
+        "No distress signatures detected\u2014volume and cadence look socially neutral to positive.",
+        "These tiny sounds often accompany routine comfort and low ambient stress.",
+        "Nothing urgent here, just evidence that the habitat currently feels safe."
+      ],
+      [
+        "Room note: brief soft chatter while settling, followed by relaxed nest movement.",
+        "This is the opposite of alarm vocalization and usually appears in stable periods.",
+        "You can log it as a reassurance event with minimal action needed.",
+        "Quiet normalcy is easy to miss, but it is valuable feedback."
+      ]
     ]
   }
 ]
