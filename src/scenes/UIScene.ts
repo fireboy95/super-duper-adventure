@@ -18,8 +18,11 @@ export class UIScene extends Phaser.Scene {
   private menuBar?: Phaser.GameObjects.Container;
   private subMenuBar?: Phaser.GameObjects.Container;
   private topMenuButtons = new Map<TopMenuKey, Phaser.GameObjects.Container>();
+  private actionGroupButtons = new Map<string, Phaser.GameObjects.Container>();
   private subActionButtons = new Map<string, Phaser.GameObjects.Container>();
+  private backButton?: Phaser.GameObjects.Container;
   private activeMenu: TopMenuKey | null = null;
+  private activeActionGroup: string | null = null;
 
   private feedButtonDisabled = false;
   private sweetButtonDisabled = false;
@@ -348,12 +351,39 @@ export class UIScene extends Phaser.Scene {
       this.menuBar.add(button);
     }
 
-    const actions: Array<{ key: string; menu: TopMenuKey; icon: string; label: string; color: number; onPress: () => void }> = [
-      { key: 'feed-standard', menu: 'feed', icon: '🥣', label: 'STANDARD', color: 0x306a43, onPress: () => this.scene.get('CageScene').events.emit('action:feed') },
-      { key: 'feed-sweet', menu: 'feed', icon: '🍬', label: 'SWEET', color: 0x6e3e8c, onPress: () => this.scene.get('CageScene').events.emit('action:feed-sweet') },
-      { key: 'refill-water', menu: 'feed', icon: '💧', label: 'WATER', color: 0x2e6f95, onPress: () => this.scene.get('CageScene').events.emit('action:refill-water') },
-      { key: 'clean', menu: 'care', icon: '🧽', label: 'CLEAN', color: 0x365f82, onPress: () => this.scene.get('CageScene').events.emit('action:clean') },
-      { key: 'handle', menu: 'social', icon: '🐹', label: 'HANDLE', color: 0x7a5738, onPress: () => this.scene.get('CageScene').events.emit('action:handle') },
+    const actionGroups: Array<{ key: string; menu: TopMenuKey; icon: string; label: string; color: number }> = [
+      { key: 'nutrition', menu: 'feed', icon: '🥣', label: 'NUTRITION', color: 0x306a43 },
+      { key: 'water', menu: 'feed', icon: '💧', label: 'WATER', color: 0x2e6f95 },
+      { key: 'hygiene', menu: 'care', icon: '🧽', label: 'HYGIENE', color: 0x365f82 },
+      { key: 'bonding', menu: 'social', icon: '🐹', label: 'BONDING', color: 0x7a5738 },
+    ];
+
+    for (const group of actionGroups) {
+      const button = this.createActionButton(group.icon, group.label, group.color, () => {
+        this.sound.play('ui-click', { volume: 0.24 });
+        this.toggleActionGroup(group.key);
+      });
+      button.setData('menu', group.menu);
+      button.setData('isGroup', true);
+      this.actionGroupButtons.set(group.key, button);
+      this.subMenuBar.add(button);
+    }
+
+    this.backButton = this.createActionButton('↩', 'BACK', 0x4a4a4a, () => {
+      this.sound.play('ui-click', { volume: 0.24 });
+      this.activeActionGroup = null;
+      this.refreshActionHierarchy();
+    });
+    this.backButton.setData('menu', 'group-back');
+    this.backButton.setData('isGroup', true);
+    this.subMenuBar.add(this.backButton);
+
+    const actions: Array<{ key: string; menu: TopMenuKey; group: string; icon: string; label: string; color: number; onPress: () => void }> = [
+      { key: 'feed-standard', menu: 'feed', group: 'nutrition', icon: '🥣', label: 'STANDARD', color: 0x306a43, onPress: () => this.scene.get('CageScene').events.emit('action:feed') },
+      { key: 'feed-sweet', menu: 'feed', group: 'nutrition', icon: '🍬', label: 'SWEET', color: 0x6e3e8c, onPress: () => this.scene.get('CageScene').events.emit('action:feed-sweet') },
+      { key: 'refill-water', menu: 'feed', group: 'water', icon: '💧', label: 'REFILL', color: 0x2e6f95, onPress: () => this.scene.get('CageScene').events.emit('action:refill-water') },
+      { key: 'clean', menu: 'care', group: 'hygiene', icon: '🧽', label: 'CLEAN', color: 0x365f82, onPress: () => this.scene.get('CageScene').events.emit('action:clean') },
+      { key: 'handle', menu: 'social', group: 'bonding', icon: '🤝', label: 'HANDLE', color: 0x7a5738, onPress: () => this.scene.get('CageScene').events.emit('action:handle') },
     ];
 
     for (const action of actions) {
@@ -364,6 +394,7 @@ export class UIScene extends Phaser.Scene {
         action.onPress();
       });
       button.setData('menu', action.menu);
+      button.setData('group', action.group);
       this.subActionButtons.set(action.key, button);
       this.subMenuBar.add(button);
     }
@@ -375,26 +406,88 @@ export class UIScene extends Phaser.Scene {
 
   private toggleActionSubmenu(menu: TopMenuKey): void {
     this.activeMenu = this.activeMenu === menu ? null : menu;
+    this.activeActionGroup = null;
 
     for (const [key, button] of this.topMenuButtons.entries()) {
       const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
       background?.setStrokeStyle(2, key === this.activeMenu ? 0xfff7ba : 0xeeeeee, key === this.activeMenu ? 1 : 0.9);
     }
 
-    for (const button of this.subActionButtons.values()) {
-      const isVisible = button.getData('menu') === this.activeMenu;
-      button.setVisible(isVisible);
-      button.setActive(isVisible);
+    this.refreshActionHierarchy();
+  }
+
+  private toggleActionGroup(groupKey: string): void {
+    this.activeActionGroup = this.activeActionGroup === groupKey ? null : groupKey;
+    this.refreshActionHierarchy();
+  }
+
+  private refreshActionHierarchy(): void {
+    for (const [groupKey, button] of this.actionGroupButtons.entries()) {
+      const isVisible = button.getData('menu') === this.activeMenu && !this.activeActionGroup;
+      this.setButtonVisibility(button, isVisible, true);
       const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
+      background?.setStrokeStyle(2, groupKey === this.activeActionGroup ? 0xfff7ba : 0xeeeeee, groupKey === this.activeActionGroup ? 1 : 0.9);
+    }
+
+    if (this.backButton) {
+      const isBackVisible = this.activeMenu !== null && this.activeActionGroup !== null;
+      this.setButtonVisibility(this.backButton, isBackVisible, true);
+    }
+
+    for (const button of this.subActionButtons.values()) {
+      const isVisible = button.getData('menu') === this.activeMenu && button.getData('group') === this.activeActionGroup;
+      this.setButtonVisibility(button, isVisible, false);
       if (isVisible) {
-        background?.setInteractive({ useHandCursor: true });
-        button.setAlpha(0.94);
-      } else {
-        background?.disableInteractive();
+        this.applyActionDisabledState(button);
       }
     }
 
     this.layoutResponsiveUi(this.scale.width, this.scale.height);
+  }
+
+  private setButtonVisibility(button: Phaser.GameObjects.Container, isVisible: boolean, isGroupButton: boolean): void {
+    button.setVisible(isVisible);
+    button.setActive(isVisible);
+    const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
+    if (!background) return;
+
+    background.disableInteractive();
+    if (isVisible && isGroupButton) {
+      background.setInteractive({ useHandCursor: true });
+      button.setAlpha(0.94);
+      return;
+    }
+
+    if (!isVisible) {
+      button.setAlpha(0.94);
+      return;
+    }
+
+    this.applyActionDisabledState(button);
+  }
+
+  private applyActionDisabledState(button: Phaser.GameObjects.Container): void {
+    const key = this.getActionKey(button);
+    const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
+    if (!background) return;
+
+    const isDisabled = (key === 'feed-standard' && this.feedButtonDisabled) || (key === 'feed-sweet' && this.sweetButtonDisabled);
+    if (isDisabled) {
+      background.disableInteractive();
+      button.setAlpha(0.75);
+      return;
+    }
+
+    background.setInteractive({ useHandCursor: true });
+    button.setAlpha(0.94);
+  }
+
+  private getActionKey(button: Phaser.GameObjects.Container): string | undefined {
+    for (const [key, candidate] of this.subActionButtons.entries()) {
+      if (candidate === button) return key;
+    }
+
+    return undefined;
   }
 
   private setActionButtonDisabled(button: Phaser.GameObjects.Container | undefined, isDisabled: boolean, enabledColor: number): void {
@@ -403,16 +496,15 @@ export class UIScene extends Phaser.Scene {
     const labels = button.list.filter((entry): entry is Phaser.GameObjects.Text => entry instanceof Phaser.GameObjects.Text);
     if (!background) return;
 
-    background.disableInteractive();
-    if (!isDisabled && button.visible) {
-      background.setInteractive({ useHandCursor: true });
-    }
-
     background.setFillStyle(isDisabled ? 0x3a3a3a : enabledColor, isDisabled ? 0.65 : 0.92);
     labels.forEach((label) => label.setAlpha(isDisabled ? 0.45 : 1));
 
     if (button === this.subActionButtons.get('feed-standard')) this.feedButtonDisabled = isDisabled;
     if (button === this.subActionButtons.get('feed-sweet')) this.sweetButtonDisabled = isDisabled;
+
+    if (button.visible) {
+      this.applyActionDisabledState(button);
+    }
   }
 
   private createActionButton(icon: string, label: string, color: number, onPress: () => void): Phaser.GameObjects.Container {
@@ -519,23 +611,31 @@ export class UIScene extends Phaser.Scene {
       button.setPosition(x, y);
     });
 
-    const visibleSubButtons = Array.from(this.subActionButtons.values()).filter((button) => button.visible);
+    const visibleSubButtons = Array.from(this.subMenuBar?.list ?? []).filter(
+      (entry): entry is Phaser.GameObjects.Container => entry instanceof Phaser.GameObjects.Container && entry.visible,
+    );
     const subColumns = Math.max(1, Math.min(isNarrow ? 2 : 3, visibleSubButtons.length || 1));
     const subAvailableWidth = width - sidePadding * 2 - gap * (subColumns - 1);
     const subButtonWidth = Math.max(130, Math.floor(subAvailableWidth / subColumns));
-    const subY = height - (isNarrow ? 84 : 78);
+    const subRows = Math.max(1, Math.ceil((visibleSubButtons.length || 1) / subColumns));
+    const subRowGap = 8;
+    const subButtonHeight = 38;
+    const subTopY = height - (isNarrow ? 84 : 78);
 
     visibleSubButtons.forEach((button, index) => {
-      const x = sidePadding + (index % subColumns) * (subButtonWidth + gap) + subButtonWidth / 2;
+      const column = index % subColumns;
+      const row = Math.floor(index / subColumns);
+      const x = sidePadding + column * (subButtonWidth + gap) + subButtonWidth / 2;
+      const y = subTopY + row * (subButtonHeight + subRowGap);
       const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
       const label = button.list[2] as Phaser.GameObjects.Text | undefined;
-      background?.setSize(subButtonWidth, 38);
+      background?.setSize(subButtonWidth, subButtonHeight);
       label?.setFontSize(isNarrow ? '12px' : '13px');
-      button.setSize(subButtonWidth, 38);
-      button.setPosition(x, subY);
+      button.setSize(subButtonWidth, subButtonHeight);
+      button.setPosition(x, y);
     });
 
-    this.controlsAreaHeight = topButtonHeight + 64;
+    this.controlsAreaHeight = topButtonHeight + 24 + subRows * (subButtonHeight + subRowGap);
 
     if (this.hudBackground) {
       const hudHeight = isNarrow ? 68 : 52;
