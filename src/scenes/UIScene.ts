@@ -10,6 +10,7 @@ export class UIScene extends Phaser.Scene {
   private debugHintText?: Phaser.GameObjects.Text;
   private feedButton?: Phaser.GameObjects.Container;
   private cleanButton?: Phaser.GameObjects.Container;
+  private debugButton?: Phaser.GameObjects.Container;
   private isDebugOpen = false;
   private unsubscribeDebug?: () => void;
 
@@ -92,11 +93,15 @@ export class UIScene extends Phaser.Scene {
   private bindDebugToggle(): void {
     const backtickKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.BACKTICK);
     backtickKey?.on('down', () => {
-      this.isDebugOpen = !this.isDebugOpen;
-      this.debugPanel?.setVisible(this.isDebugOpen);
-      this.debugHintText?.setColor(this.isDebugOpen ? '#ffffff' : '#00ff99');
-      console.log(`[debug] Console ${this.isDebugOpen ? 'opened' : 'closed'}`);
+      this.toggleDebugPanel();
     });
+  }
+
+  private toggleDebugPanel(): void {
+    this.isDebugOpen = !this.isDebugOpen;
+    this.debugPanel?.setVisible(this.isDebugOpen);
+    this.debugHintText?.setColor(this.isDebugOpen ? '#ffffff' : '#00ff99');
+    console.log(`[debug] Console ${this.isDebugOpen ? 'opened' : 'closed'}`);
   }
 
   private renderDebugEntries(entries: DebugConsoleEntry[]): void {
@@ -110,11 +115,18 @@ export class UIScene extends Phaser.Scene {
 
   private createTouchControls(): void {
     this.feedButton = this.createActionButton('FEED', 0x306a43, () => {
+      this.sound.play('ui-click', { volume: 0.25 });
       this.scene.get('CageScene').events.emit('action:feed');
     });
 
     this.cleanButton = this.createActionButton('CLEAN', 0x365f82, () => {
+      this.sound.play('ui-click', { volume: 0.25 });
       this.scene.get('CageScene').events.emit('action:clean');
+    });
+
+    this.debugButton = this.createActionButton('DEBUG', 0x5e4168, () => {
+      this.sound.play('ui-click', { volume: 0.22 });
+      this.toggleDebugPanel();
     });
   }
 
@@ -159,11 +171,15 @@ export class UIScene extends Phaser.Scene {
     const buttonGap = 12;
 
     if (this.feedButton) {
-      this.feedButton.setPosition(width - horizontalPadding - 68 - 136 - buttonGap, height - controlsBottomOffset);
+      this.feedButton.setPosition(width - horizontalPadding - 68 - 136 - 136 - buttonGap * 2, height - controlsBottomOffset);
     }
 
     if (this.cleanButton) {
-      this.cleanButton.setPosition(width - horizontalPadding - 68, height - controlsBottomOffset);
+      this.cleanButton.setPosition(width - horizontalPadding - 68 - 136 - buttonGap, height - controlsBottomOffset);
+    }
+
+    if (this.debugButton) {
+      this.debugButton.setPosition(width - horizontalPadding - 68, height - controlsBottomOffset);
     }
 
     if (this.dialogText) {

@@ -7,6 +7,7 @@ export class CageScene extends Phaser.Scene {
   private eventSystem = new EventSystem();
   private accumulatedMs = 0;
   private statusText?: Phaser.GameObjects.Text;
+  private hamster?: Phaser.GameObjects.Sprite;
 
   constructor() {
     super('CageScene');
@@ -15,8 +16,10 @@ export class CageScene extends Phaser.Scene {
   create(): void {
     this.cameras.main.setBackgroundColor('#2a2f2a');
 
-    this.add.rectangle(320, 240, 560, 320, 0x665544).setStrokeStyle(2, 0x222222);
+    this.add.image(320, 240, 'cage-bg');
     this.add.text(80, 80, 'CAGE VIEW', { fontFamily: 'monospace', fontSize: '16px', color: '#111111' });
+
+    this.createHamsterSprite();
 
     this.statusText = this.add.text(80, 360, '', { fontFamily: 'monospace', fontSize: '14px', color: '#ffffff' });
 
@@ -52,6 +55,19 @@ export class CageScene extends Phaser.Scene {
     this.refreshStatus();
   }
 
+  private createHamsterSprite(): void {
+    this.anims.create({
+      key: 'hamster-idle',
+      frames: [{ key: 'hamster-idle-1' }, { key: 'hamster-idle-2' }],
+      frameRate: 2,
+      repeat: -1,
+    });
+
+    this.hamster = this.add.sprite(320, 295, 'hamster-idle-1');
+    this.hamster.setScale(1.4);
+    this.hamster.play('hamster-idle');
+  }
+
   private refreshStatus(): void {
     if (!this.statusText) return;
     const visible = this.simulation.getVisibleStats();
@@ -65,10 +81,12 @@ export class CageScene extends Phaser.Scene {
   }
 
   private handleFeedAction(): void {
+    this.sound.play('hamster-squeak', { volume: 0.45 });
     this.simulation.applyPlayerAction('feed_standard');
   }
 
   private handleCleanAction(): void {
+    this.sound.play('ui-click', { volume: 0.35 });
     this.simulation.applyPlayerAction('clean_cage');
   }
 }
