@@ -8,6 +8,7 @@ export class UIScene extends Phaser.Scene {
   private debugPanel?: Phaser.GameObjects.Container;
   private debugText?: Phaser.GameObjects.Text;
   private debugHintText?: Phaser.GameObjects.Text;
+  private debugStatusText?: Phaser.GameObjects.Text;
   private feedButton?: Phaser.GameObjects.Container;
   private cleanButton?: Phaser.GameObjects.Container;
   private debugButton?: Phaser.GameObjects.Container;
@@ -32,6 +33,12 @@ export class UIScene extends Phaser.Scene {
       color: '#00ff99',
     });
     this.debugHintText.setOrigin(1, 0);
+
+    this.debugStatusText = this.add.text(16, 30, 'DEBUG: OFF', {
+      fontFamily: 'monospace',
+      fontSize: '12px',
+      color: '#00ff99',
+    });
 
     this.dialogText = this.add.text(20, 420, '', {
       fontFamily: 'monospace',
@@ -101,6 +108,8 @@ export class UIScene extends Phaser.Scene {
     this.isDebugOpen = !this.isDebugOpen;
     this.debugPanel?.setVisible(this.isDebugOpen);
     this.debugHintText?.setColor(this.isDebugOpen ? '#ffffff' : '#00ff99');
+    this.debugStatusText?.setText(`DEBUG: ${this.isDebugOpen ? 'ON' : 'OFF'}`);
+    this.debugStatusText?.setColor(this.isDebugOpen ? '#ffffff' : '#00ff99');
     console.log(`[debug] Console ${this.isDebugOpen ? 'opened' : 'closed'}`);
   }
 
@@ -143,7 +152,8 @@ export class UIScene extends Phaser.Scene {
 
     const button = this.add.container(0, 0, [background, text]);
     button.setSize(136, 44);
-    button.setInteractive({ useHandCursor: true });
+    button.setInteractive(new Phaser.Geom.Rectangle(-68, -22, 136, 44), Phaser.Geom.Rectangle.Contains);
+    button.input!.cursor = 'pointer';
 
     button.on('pointerdown', () => {
       onPress();
@@ -189,6 +199,10 @@ export class UIScene extends Phaser.Scene {
 
     if (this.debugHintText) {
       this.debugHintText.setPosition(width - 15, 10);
+    }
+
+    if (this.debugStatusText) {
+      this.debugStatusText.setPosition(16, 28);
     }
   }
 }
