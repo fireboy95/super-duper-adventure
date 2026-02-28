@@ -2,11 +2,17 @@ import Phaser from 'phaser';
 import { EventSystem } from '../systems/EventSystem';
 import type { DialogOptionEffects } from '../systems/DialogueSystem';
 import { SimulationManager } from '../systems/SimulationManager';
+import { SaveSystem } from '../systems/SaveSystem';
+
+const AUTOSAVE_INTERVAL_MS = 10_000;
 
 export class CageScene extends Phaser.Scene {
   private simulation = new SimulationManager();
   private eventSystem = new EventSystem();
+  private saveSystem = new SaveSystem();
   private accumulatedMs = 0;
+  private autosaveElapsedMs = 0;
+  private hasTransitionedToEnding = false;
   private statusText?: Phaser.GameObjects.Text;
   private hamster?: Phaser.GameObjects.Sprite;
   private timeOfDayOverlay?: Phaser.GameObjects.Rectangle;
@@ -16,7 +22,13 @@ export class CageScene extends Phaser.Scene {
     super('CageScene');
   }
 
-  create(): void {
+  create(data?: { forceNewGame?: boolean }): void {
+    const shouldLoadSave = !data?.forceNewGame;
+    const loadedState = shouldLoadSave ? this.saveSystem.load() : null;
+    this.simulation = new SimulationManager(loadedState ?? undefined);
+    this.autosaveElapsedMs = 0;
+    this.hasTransitionedToEnding = false;
+
     this.cameras.main.setBackgroundColor('#2a2f2a');
 
     this.add.image(320, 240, 'cage-bg');
@@ -37,6 +49,7 @@ export class CageScene extends Phaser.Scene {
     this.events.on('dialog:apply-effects', this.handleDialogEffects, this);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.saveCurrentState();
       this.events.off('action:feed', this.handleFeedAction, this);
       this.events.off('action:clean', this.handleCleanAction, this);
       this.events.off('dialog:apply-effects', this.handleDialogEffects, this);
@@ -47,6 +60,12 @@ export class CageScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     this.accumulatedMs += delta;
+    this.autosaveElapsedMs += delta;
+
+    if (this.autosaveElapsedMs >= AUTOSAVE_INTERVAL_MS) {
+      this.saveCurrentState();
+      this.autosaveElapsedMs = 0;
+    }
 
     while (this.accumulatedMs >= 250) {
       this.simulation.tick(0.25);
@@ -60,6 +79,15 @@ export class CageScene extends Phaser.Scene {
     }
 
     this.updateAmbientLighting();
+
+    const endingId = this.simulation.getState().progression.endingId;
+    if (!this.hasTransitionedToEnding && endingId) {
+      this.hasTransitionedToEnding = true;
+      this.saveCurrentState();
+      this.scene.stop('UIScene');
+      this.scene.start('EndingScene', { endingId });
+      return;
+    }
 
     this.refreshStatus();
   }
@@ -185,5 +213,9 @@ export class CageScene extends Phaser.Scene {
       ease: 'Cubic.easeOut',
       onComplete: () => pulse.destroy(),
     });
+  }
+
+  private saveCurrentState(): void {
+    this.saveSystem.save(this.simulation.getState());
   }
 }
