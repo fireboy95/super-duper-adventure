@@ -177,7 +177,8 @@ export class UIScene extends Phaser.Scene {
     labelText.setText(isFinalPage ? 'CLOSE' : 'NEXT');
 
     this.dialogAdvanceButton.removeAllListeners();
-    this.dialogAdvanceButton.on('pointerdown', () => {
+    this.dialogAdvanceButton.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
       if (!this.currentDialog) {
         this.closeDialog();
         return;
@@ -194,6 +195,9 @@ export class UIScene extends Phaser.Scene {
 
   private createDialogModal(): void {
     this.dialogBackdrop = this.add.rectangle(320, 240, 640, 480, 0x000000, 0.5).setInteractive();
+    this.dialogBackdrop.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
+    });
     this.dialogPanel = this.add.rectangle(320, 240, 520, 320, 0x13161d, 0.94);
     this.dialogPanel.setStrokeStyle(2, 0xc9dbff, 0.9);
 
@@ -325,7 +329,8 @@ export class UIScene extends Phaser.Scene {
     button.setInteractive(new Phaser.Geom.Rectangle(-68, -22, 136, 44), Phaser.Geom.Rectangle.Contains);
     button.input!.cursor = 'pointer';
 
-    button.on('pointerdown', () => {
+    button.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
       onPress();
       background.setFillStyle(0x1f1f1f, 0.96);
     });
@@ -357,7 +362,8 @@ export class UIScene extends Phaser.Scene {
     button.setInteractive(new Phaser.Geom.Rectangle(110, -17, 420, 34), Phaser.Geom.Rectangle.Contains);
     button.input!.cursor = 'pointer';
 
-    button.on('pointerdown', () => {
+    button.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
       onPress();
       background.setFillStyle(0x1f1f1f, 0.96);
     });

@@ -28,14 +28,6 @@ export class CageScene extends Phaser.Scene {
     this.statusText = this.add.text(80, 360, '', { fontFamily: 'monospace', fontSize: '14px', color: '#ffffff' });
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      const hudHeight = 44;
-      const controlsHeight = 72;
-      const isInsideCageInteractionBand = pointer.y > hudHeight && pointer.y < this.scale.height - controlsHeight;
-
-      if (!isInsideCageInteractionBand) {
-        return;
-      }
-
       if (pointer.leftButtonDown()) this.simulation.applyPlayerAction('feed_standard');
       if (pointer.rightButtonDown()) this.simulation.applyPlayerAction('clean_cage');
     });
