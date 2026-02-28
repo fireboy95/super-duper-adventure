@@ -4,6 +4,7 @@ import { DebugConsoleEntry, debugConsole } from '../systems/DebugConsole';
 
 export class UIScene extends Phaser.Scene {
   private dialogueSystem = new DialogueSystem();
+  private hudText?: Phaser.GameObjects.Text;
   private debugPanel?: Phaser.GameObjects.Container;
   private debugText?: Phaser.GameObjects.Text;
   private debugHintText?: Phaser.GameObjects.Text;
@@ -33,7 +34,7 @@ export class UIScene extends Phaser.Scene {
 
   create(): void {
     this.add.rectangle(320, 22, 640, 44, 0x1f1f1f, 0.9);
-    this.add.text(16, 10, 'HUD: Hunger / Mood / Cleanliness', {
+    this.hudText = this.add.text(16, 10, 'Hunger -- | Thirst -- | Energy -- | Health -- | Cleanliness -- | Mood --', {
       fontFamily: 'monospace',
       fontSize: '14px',
       color: '#f7f7f7',
@@ -60,10 +61,21 @@ export class UIScene extends Phaser.Scene {
     this.createDebugOverlay();
     this.bindDebugToggle();
     this.bindDialogueEvents();
+    this.bindHudEvents();
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribeDebug?.();
       this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
+    });
+  }
+
+
+  private bindHudEvents(): void {
+    const cageScene = this.scene.get('CageScene');
+    cageScene.events.on('hud:update', (payload: { hunger: number; thirst: number; energy: number; health: number; cleanliness: number; mood: number }) => {
+      this.hudText?.setText(
+        `Hunger ${payload.hunger.toFixed(0)} | Thirst ${payload.thirst.toFixed(0)} | Energy ${payload.energy.toFixed(0)} | Health ${payload.health.toFixed(0)} | Cleanliness ${payload.cleanliness.toFixed(0)} | Mood ${payload.mood.toFixed(0)}`
+      );
     });
   }
 
