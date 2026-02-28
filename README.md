@@ -15,3 +15,8 @@ A TypeScript + Phaser 3 starter scaffold for the hamster care simulation describ
 - Type-safe simulation state model.
 - MVP simulation tick with sample hidden-rule behaviors.
 - JSON-backed event + dialog definitions.
+
+
+## Design documentation
+
+- Consolidated v1 GDD for ongoing AI/human development: `docs/GDD_V1.md`
