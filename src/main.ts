@@ -11,10 +11,14 @@ const config: Phaser.Types.Core.GameConfig = {
   backgroundColor: '#000000',
   parent: 'game-container',
   scale: {
-    mode: Phaser.Scale.FIT,
+    mode: Phaser.Scale.RESIZE,
     autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: 640,
-    height: 480,
+    min: {
+      width: 320,
+      height: 480,
+    },
+    width: window.innerWidth,
+    height: window.innerHeight,
   },
   pixelArt: true,
   scene: [BootScene, TitleScene, CageScene, UIScene, EndingScene],

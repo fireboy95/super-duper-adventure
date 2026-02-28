@@ -32,17 +32,21 @@ export class UIScene extends Phaser.Scene {
   private currentDialog: DialogEntry | null = null;
   private currentDialogPage = 0;
   private currentDialogEventId: string | null = null;
+  private hudBackground?: Phaser.GameObjects.Rectangle;
+  private controlsAreaHeight = 0;
 
   constructor() {
     super('UIScene');
   }
 
   create(): void {
-    this.add.rectangle(320, 22, 640, 44, 0x1f1f1f, 0.9);
+    this.hudBackground = this.add.rectangle(320, 22, 640, 44, 0x1f1f1f, 0.9);
     this.hudText = this.add.text(16, 10, 'Hunger -- | Thirst -- | Energy -- | Health -- | Cleanliness -- | Mood --', {
       fontFamily: 'monospace',
       fontSize: '14px',
       color: '#f7f7f7',
+      wordWrap: { width: Math.max(200, this.scale.width - 120) },
+      lineSpacing: 2,
     });
 
     const debugHintCopy = this.sys.game.device.input.touch ? '[DEBUG TAP]' : '[` DEBUG]';
@@ -84,7 +88,7 @@ export class UIScene extends Phaser.Scene {
     const cageScene = this.scene.get('CageScene');
     cageScene.events.on('hud:update', (payload: { hunger: number; thirst: number; energy: number; health: number; cleanliness: number; mood: number; foodStandard?: number; foodSweet?: number }) => {
       this.hudText?.setText(
-        `Hunger ${payload.hunger.toFixed(0)} | Thirst ${payload.thirst.toFixed(0)} | Energy ${payload.energy.toFixed(0)} | Health ${payload.health.toFixed(0)} | Cleanliness ${payload.cleanliness.toFixed(0)} | Mood ${payload.mood.toFixed(0)}`
+        `H ${payload.hunger.toFixed(0)}  T ${payload.thirst.toFixed(0)}  E ${payload.energy.toFixed(0)}  HP ${payload.health.toFixed(0)}\nClean ${payload.cleanliness.toFixed(0)}  Mood ${payload.mood.toFixed(0)}`
       );
 
       this.setActionButtonDisabled(this.feedButton, (payload.foodStandard ?? 0) <= 0, 0x306a43);
@@ -450,45 +454,64 @@ export class UIScene extends Phaser.Scene {
   }
 
   private layoutResponsiveUi(width: number, height: number): void {
-    const horizontalPadding = 14;
-    const controlsBottomOffset = 28;
-    const buttonGap = 12;
-    const buttonWidth = 136;
-    const rightAnchorX = width - horizontalPadding - 68;
+    const isNarrow = width < 900;
+    const columns = isNarrow ? 2 : 6;
+    const gap = isNarrow ? 10 : 12;
+    const sidePadding = isNarrow ? 12 : 14;
+    const topPadding = 10;
 
-    if (this.feedButton) {
-      this.feedButton.setPosition(rightAnchorX - (buttonWidth + buttonGap) * 5, height - controlsBottomOffset);
+    const availableWidth = width - sidePadding * 2 - gap * (columns - 1);
+    const buttonWidth = Math.max(isNarrow ? 116 : 108, Math.floor(availableWidth / columns));
+    const buttonHeight = isNarrow ? 54 : 44;
+
+    const buttons = [this.feedButton, this.sweetButton, this.waterButton, this.handleButton, this.cleanButton, this.debugButton].filter(
+      (button): button is Phaser.GameObjects.Container => Boolean(button)
+    );
+
+    buttons.forEach((button, index) => {
+      const col = index % columns;
+      const row = Math.floor(index / columns);
+      const x = sidePadding + col * (buttonWidth + gap) + buttonWidth / 2;
+      const y = height - 20 - (buttons.length > columns ? (1 - row) * (buttonHeight + gap) : 0);
+
+      const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
+      const text = button.list[1] as Phaser.GameObjects.Text | undefined;
+
+      background?.setSize(buttonWidth, buttonHeight);
+      text?.setFontSize(isNarrow ? '18px' : '16px');
+      button.setSize(buttonWidth, buttonHeight);
+      button.setPosition(x, y);
+    });
+
+    const controlRows = Math.ceil(buttons.length / columns);
+    this.controlsAreaHeight = controlRows * buttonHeight + Math.max(0, controlRows - 1) * gap + 30;
+
+    if (this.hudBackground) {
+      const hudHeight = isNarrow ? 68 : 52;
+      this.hudBackground.setPosition(width / 2, topPadding + hudHeight / 2);
+      this.hudBackground.setSize(width, hudHeight);
     }
 
-    if (this.sweetButton) {
-      this.sweetButton.setPosition(rightAnchorX - (buttonWidth + buttonGap) * 4, height - controlsBottomOffset);
-    }
-
-    if (this.waterButton) {
-      this.waterButton.setPosition(rightAnchorX - (buttonWidth + buttonGap) * 3, height - controlsBottomOffset);
-    }
-
-    if (this.handleButton) {
-      this.handleButton.setPosition(rightAnchorX - (buttonWidth + buttonGap) * 2, height - controlsBottomOffset);
-    }
-
-    if (this.cleanButton) {
-      this.cleanButton.setPosition(rightAnchorX - (buttonWidth + buttonGap), height - controlsBottomOffset);
-    }
-
-    if (this.debugButton) {
-      this.debugButton.setPosition(rightAnchorX, height - controlsBottomOffset);
+    if (this.hudText) {
+      this.hudText.setPosition(12, topPadding);
+      this.hudText.setStyle({ wordWrap: { width: Math.max(200, width - 130) }, fontSize: isNarrow ? '13px' : '14px' });
     }
 
     if (this.debugHintText) {
-      this.debugHintText.setPosition(width - 15, 10);
+      this.debugHintText.setPosition(width - 12, topPadding);
+      this.debugHintText.setFontSize(isNarrow ? '11px' : '12px');
     }
 
     if (this.debugStatusText) {
-      this.debugStatusText.setPosition(16, 28);
+      this.debugStatusText.setPosition(12, isNarrow ? 48 : 30);
+      this.debugStatusText.setFontSize(isNarrow ? '11px' : '12px');
     }
 
+    this.debugPanel?.setPosition(0, Math.max(0, isNarrow ? 20 : 0));
+
+    const dialogWidth = Math.min(560, width - (isNarrow ? 20 : 28));
+    const dialogHeight = Math.min(330, height - this.controlsAreaHeight - (isNarrow ? 24 : 40));
     this.dialogBackdrop?.setPosition(width / 2, height / 2).setSize(width, height);
-    this.dialogPanel?.setPosition(width / 2, height / 2).setSize(Math.min(560, width - 28), Math.min(330, height - 70));
+    this.dialogPanel?.setPosition(width / 2, height / 2 - (isNarrow ? 12 : 0)).setSize(dialogWidth, Math.max(220, dialogHeight));
   }
 }
