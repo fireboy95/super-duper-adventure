@@ -25,6 +25,7 @@ export class UIScene extends Phaser.Scene {
   private dialogOptionButtons: Phaser.GameObjects.Container[] = [];
   private currentDialog: DialogEntry | null = null;
   private currentDialogPage = 0;
+  private currentDialogEventId: string | null = null;
 
   constructor() {
     super('UIScene');
@@ -68,12 +69,17 @@ export class UIScene extends Phaser.Scene {
 
   private bindDialogueEvents(): void {
     const cageScene = this.scene.get('CageScene');
-    cageScene.events.on('dialog:show', (dialogId: string) => {
-      this.openDialog(dialogId);
+    cageScene.events.on('dialog:show', (payload: string | { dialogId: string; eventId?: string }) => {
+      if (typeof payload === 'string') {
+        this.openDialog(payload);
+        return;
+      }
+
+      this.openDialog(payload.dialogId, payload.eventId);
     });
   }
 
-  private openDialog(dialogId: string): void {
+  private openDialog(dialogId: string, eventId?: string): void {
     const dialog = this.dialogueSystem.getById(dialogId);
     if (!dialog) {
       console.warn(`[dialog] Unknown dialog ID "${dialogId}" requested.`);
@@ -82,6 +88,7 @@ export class UIScene extends Phaser.Scene {
 
     this.currentDialog = dialog;
     this.currentDialogPage = 0;
+    this.currentDialogEventId = eventId ?? null;
     this.dialogModal?.setVisible(true);
     this.renderDialog();
     console.info('[dialog]', dialog.id, dialog.title);
@@ -127,9 +134,24 @@ export class UIScene extends Phaser.Scene {
       return;
     }
 
-    cageScene.events.emit('dialog:apply-effects', option.effects);
+    const optionEffects = structuredClone(option.effects);
+    const labelLower = option.label.toLowerCase();
+    const shouldMarkIgnore = this.currentDialogEventId && (labelLower.includes('later') || labelLower.includes('ignore'));
 
-    const followUpDialogId = option.effects.nextDialogId ?? option.effects.followUpDialogIds?.[0];
+    if (shouldMarkIgnore) {
+      const progression = optionEffects.progression ?? {};
+      const ignoredEventIdsAdd = progression.ignoredEventIdsAdd ?? [];
+      if (this.currentDialogEventId && !ignoredEventIdsAdd.includes(this.currentDialogEventId)) {
+        ignoredEventIdsAdd.push(this.currentDialogEventId);
+      }
+      progression.ignoredEventIdsAdd = ignoredEventIdsAdd;
+      optionEffects.progression = progression;
+      console.debug(`[dialog] Option "${option.id}" marked ignore for event "${this.currentDialogEventId}".`);
+    }
+
+    cageScene.events.emit('dialog:apply-effects', optionEffects);
+
+    const followUpDialogId = optionEffects.nextDialogId ?? optionEffects.followUpDialogIds?.[0];
     if (followUpDialogId) {
       this.openDialog(followUpDialogId);
       return;
@@ -141,6 +163,7 @@ export class UIScene extends Phaser.Scene {
   private closeDialog(): void {
     this.currentDialog = null;
     this.currentDialogPage = 0;
+    this.currentDialogEventId = null;
     this.renderDialogOptions([]);
     this.dialogModal?.setVisible(false);
   }

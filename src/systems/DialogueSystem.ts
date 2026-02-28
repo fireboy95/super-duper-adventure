@@ -29,6 +29,7 @@ export interface DialogProgressionEffects {
   unlockedItemsAdd?: string[];
   seenDialogIdsAdd?: string[];
   seenEventIdsAdd?: string[];
+  ignoredEventIdsAdd?: string[];
   endingId?: string | null;
 }
 
@@ -164,6 +165,7 @@ export class DialogueSystem {
       parsedProgression.unlockedItemsAdd = this.parseStringArray(progression.unlockedItemsAdd);
       parsedProgression.seenDialogIdsAdd = this.parseStringArray(progression.seenDialogIdsAdd);
       parsedProgression.seenEventIdsAdd = this.parseStringArray(progression.seenEventIdsAdd);
+      parsedProgression.ignoredEventIdsAdd = this.parseStringArray(progression.ignoredEventIdsAdd);
 
       if (typeof progression.endingId === 'string' || progression.endingId === null) {
         parsedProgression.endingId = progression.endingId;

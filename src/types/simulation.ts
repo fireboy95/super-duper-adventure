@@ -49,6 +49,13 @@ export interface SimulationState {
     seenEventIds: string[];
     endingId: string | null;
   };
+  eventState: {
+    lastTriggeredAtMinutesByEventId: Record<string, number>;
+    lastTriggeredDayByEventId: Record<string, number>;
+    ignoreCountsByEventId: Record<string, number>;
+    triggerCountsByEventId: Record<string, number>;
+    cooldownUntilDayByEventId: Record<string, number>;
+  };
 }
 
 export type PlayerActionType = 'feed_standard' | 'feed_sweet' | 'refill_water' | 'clean_cage' | 'handle_hamster';

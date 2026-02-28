@@ -48,5 +48,12 @@
     "seenDialogIds": [],
     "seenEventIds": [],
     "endingId": null
+  },
+  "eventState": {
+    "lastTriggeredAtMinutesByEventId": {},
+    "lastTriggeredDayByEventId": {},
+    "ignoreCountsByEventId": {},
+    "triggerCountsByEventId": {},
+    "cooldownUntilDayByEventId": {}
   }
 }

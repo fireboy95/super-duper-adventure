@@ -25,7 +25,7 @@
           },
           "progression": {
             "seenDialogIdsAdd": ["dlg_sweets_warning_1"],
-            "seenEventIdsAdd": ["evt_sweets_warning"]
+            "seenEventIdsAdd": ["event_sweets_overload_stage1"]
           }
         }
       },
@@ -47,7 +47,9 @@
             "grudge": 2
           },
           "progression": {
-            "seenDialogIdsAdd": ["dlg_sweets_warning_1"]
+            "seenDialogIdsAdd": ["dlg_sweets_warning_1"],
+            "seenEventIdsAdd": ["event_sweets_overload_stage1"],
+            "ignoredEventIdsAdd": ["event_sweets_overload_stage1"]
           },
           "followUpDialogIds": ["dlg_dirty_cage_1"]
         }
@@ -76,7 +78,8 @@
           },
           "progression": {
             "daysSurvivedDelta": 0,
-            "seenDialogIdsAdd": ["dlg_dirty_cage_1"]
+            "seenDialogIdsAdd": ["dlg_dirty_cage_1"],
+            "seenEventIdsAdd": ["event_dirty_cage_warning"]
           }
         }
       },
@@ -93,9 +96,109 @@
             "grudge": 1
           },
           "progression": {
-            "seenDialogIdsAdd": ["dlg_dirty_cage_1"]
+            "seenDialogIdsAdd": ["dlg_dirty_cage_1"],
+            "seenEventIdsAdd": ["event_dirty_cage_warning"],
+            "ignoredEventIdsAdd": ["event_dirty_cage_warning"]
           },
           "nextDialogId": null
+        }
+      }
+    ]
+  },
+  {
+    "id": "dlg_dirty_cage_2",
+    "speaker": "System Message",
+    "title": "Cleanliness Warning Escalated",
+    "pages": [
+      "Odor and waste are now severe.",
+      "Your hamster is showing signs of prolonged stress."
+    ],
+    "options": [
+      {
+        "id": "opt_clean_now_escalated",
+        "label": "Deep clean now",
+        "effects": {
+          "stats": {
+            "stress": -8,
+            "health": 2,
+            "mood": 2
+          },
+          "memory": {
+            "positiveInteractions": 1,
+            "grudge": -1
+          },
+          "progression": {
+            "seenDialogIdsAdd": ["dlg_dirty_cage_2"],
+            "seenEventIdsAdd": ["event_dirty_cage_escalated"]
+          }
+        }
+      },
+      {
+        "id": "opt_later_escalated",
+        "label": "Later",
+        "effects": {
+          "stats": {
+            "stress": 5,
+            "health": -4
+          },
+          "memory": {
+            "negativeInteractions": 1,
+            "grudge": 2
+          },
+          "progression": {
+            "seenDialogIdsAdd": ["dlg_dirty_cage_2"],
+            "seenEventIdsAdd": ["event_dirty_cage_escalated"],
+            "ignoredEventIdsAdd": ["event_dirty_cage_escalated"]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "dlg_dirty_cage_3",
+    "speaker": "Emergency Monitor",
+    "title": "Critical Hygiene Risk",
+    "pages": [
+      "Conditions are now dangerous.",
+      "Immediate cleanup is required to avoid severe health harm."
+    ],
+    "options": [
+      {
+        "id": "opt_clean_now_critical",
+        "label": "Emergency clean",
+        "effects": {
+          "stats": {
+            "stress": -10,
+            "health": 3,
+            "mood": 1
+          },
+          "memory": {
+            "positiveInteractions": 1,
+            "grudge": -2
+          },
+          "progression": {
+            "seenDialogIdsAdd": ["dlg_dirty_cage_3"],
+            "seenEventIdsAdd": ["event_dirty_cage_critical"]
+          }
+        }
+      },
+      {
+        "id": "opt_ignore_critical",
+        "label": "Ignore",
+        "effects": {
+          "stats": {
+            "stress": 8,
+            "health": -6
+          },
+          "memory": {
+            "negativeInteractions": 2,
+            "grudge": 3
+          },
+          "progression": {
+            "seenDialogIdsAdd": ["dlg_dirty_cage_3"],
+            "seenEventIdsAdd": ["event_dirty_cage_critical"],
+            "ignoredEventIdsAdd": ["event_dirty_cage_critical"]
+          }
         }
       }
     ]
