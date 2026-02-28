@@ -434,6 +434,7 @@ export class UIScene extends Phaser.Scene {
 
     this.setActionButtonDisabled(this.subActionButtons.get('feed-standard'), false, 0x306a43);
     this.setActionButtonDisabled(this.subActionButtons.get('feed-sweet'), false, 0x6e3e8c);
+    this.layoutResponsiveUi(this.scale.width, this.scale.height);
   }
 
 
