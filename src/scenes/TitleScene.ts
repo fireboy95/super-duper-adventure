@@ -11,8 +11,12 @@ export class TitleScene extends Phaser.Scene {
   create(): void {
     this.cameras.main.setBackgroundColor('#1b1b3a');
 
+    const { width, height } = this.scale;
+    const centerX = width / 2;
+    const titleY = Math.max(110, height * 0.28);
+
     this.add
-      .text(320, 160, "HAMSTER KEEPER '98", {
+      .text(centerX, titleY, "HAMSTER KEEPER '98", {
         fontFamily: 'monospace',
         fontSize: '28px',
         color: '#f0f0f0',
@@ -22,7 +26,7 @@ export class TitleScene extends Phaser.Scene {
     const hasSave = this.saveSystem.hasSave();
 
     const continueEntry = this.add
-      .text(320, 248, hasSave ? '[ CONTINUE ]' : '[ CONTINUE - NO SAVE ]', {
+      .text(centerX, titleY + 88, hasSave ? '[ CONTINUE ]' : '[ CONTINUE - NO SAVE ]', {
         fontFamily: 'monospace',
         fontSize: '20px',
         color: hasSave ? '#00ff99' : '#666666',
@@ -38,7 +42,7 @@ export class TitleScene extends Phaser.Scene {
     }
 
     const newGame = this.add
-      .text(320, 292, '[ NEW GAME ]', {
+      .text(centerX, titleY + 132, '[ NEW GAME ]', {
         fontFamily: 'monospace',
         fontSize: '20px',
         color: '#f4cf6b',

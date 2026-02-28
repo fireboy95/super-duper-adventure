@@ -15,6 +15,8 @@ export class CageScene extends Phaser.Scene {
   private hasTransitionedToEnding = false;
   private statusText?: Phaser.GameObjects.Text;
   private hamster?: Phaser.GameObjects.Sprite;
+  private cageBackground?: Phaser.GameObjects.Image;
+  private cageLabel?: Phaser.GameObjects.Text;
   private timeOfDayOverlay?: Phaser.GameObjects.Rectangle;
   private ambientGlow?: Phaser.GameObjects.Ellipse;
 
@@ -31,9 +33,9 @@ export class CageScene extends Phaser.Scene {
 
     this.cameras.main.setBackgroundColor('#2a2f2a');
 
-    this.add.image(320, 240, 'cage-bg');
+    this.cageBackground = this.add.image(320, 240, 'cage-bg');
     this.createAmbientEffects();
-    this.add.text(80, 80, 'CAGE VIEW', { fontFamily: 'monospace', fontSize: '16px', color: '#111111' });
+    this.cageLabel = this.add.text(80, 80, 'CAGE VIEW', { fontFamily: 'monospace', fontSize: '16px', color: '#111111' });
 
     this.createHamsterSprite();
 
@@ -51,8 +53,12 @@ export class CageScene extends Phaser.Scene {
     this.events.on('action:clean', this.handleCleanAction, this);
     this.events.on('dialog:apply-effects', this.handleDialogEffects, this);
 
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
+    this.layoutScene(this.scale.width, this.scale.height);
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.saveCurrentState();
+      this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
       this.events.off('action:feed', this.handleFeedAction, this);
       this.events.off('action:feed-sweet', this.handleFeedSweetAction, this);
       this.events.off('action:refill-water', this.handleRefillWaterAction, this);
@@ -253,6 +259,32 @@ export class CageScene extends Phaser.Scene {
       ease: 'Cubic.easeOut',
       onComplete: () => pulse.destroy(),
     });
+  }
+
+  private handleResize(gameSize: Phaser.Structs.Size): void {
+    this.layoutScene(gameSize.width, gameSize.height);
+  }
+
+  private layoutScene(width: number, height: number): void {
+    const isNarrow = width < 720;
+
+    this.cageBackground?.setPosition(width / 2, height / 2);
+    if (this.cageBackground) {
+      this.cageBackground.setDisplaySize(width, height);
+    }
+
+    this.timeOfDayOverlay?.setPosition(width / 2, height / 2).setSize(width, height);
+    this.ambientGlow?.setPosition(width / 2, height / 2 - 25).setSize(Math.max(320, width * 0.82), Math.max(140, height * 0.36));
+    this.hamster?.setPosition(width / 2, Math.min(height - (isNarrow ? 170 : 185), height * 0.62));
+
+    this.cageLabel?.setPosition(20, 20).setFontSize(isNarrow ? '14px' : '16px');
+
+    if (this.statusText) {
+      this.statusText.setPosition(20, Math.max(70, height - (isNarrow ? 250 : 140)));
+      this.statusText.setFontSize(isNarrow ? '12px' : '14px');
+      this.statusText.setWordWrapWidth(Math.max(230, width - 40));
+      this.statusText.setAlpha(isNarrow ? 0.92 : 1);
+    }
   }
 
   private saveCurrentState(): void {
