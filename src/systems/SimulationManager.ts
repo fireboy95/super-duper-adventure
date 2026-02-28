@@ -1,0 +1,106 @@
+import defaults from '../data/stats.defaults.json';
+import type { HamsterStats, PlayerActionType, SimulationState } from '../types/simulation';
+
+const MINUTES_PER_DAY = 24 * 60;
+
+export class SimulationManager {
+  private state: SimulationState;
+
+  constructor(seedState?: SimulationState) {
+    this.state = seedState ?? structuredClone(defaults as SimulationState);
+  }
+
+  tick(deltaSeconds: number): void {
+    if (!this.state.hamster.alive) return;
+
+    const deltaMinutes = deltaSeconds / 2;
+    this.state.timeOfDayMinutes = (this.state.timeOfDayMinutes + deltaMinutes) % MINUTES_PER_DAY;
+
+    this.changeStat('hunger', 0.4 * deltaSeconds);
+    this.changeStat('thirst', 0.45 * deltaSeconds);
+    this.changeStat('energy', this.isNightTime() ? -0.3 * deltaSeconds : 0.2 * deltaSeconds);
+
+    if (this.state.cage.cleanliness < 30) {
+      this.changeStat('health', -0.15 * deltaSeconds);
+      this.changeStat('stress', 0.2 * deltaSeconds);
+    }
+
+    if (this.state.hamster.flags.hyperactive) {
+      this.changeStat('energy', -0.3 * deltaSeconds);
+      this.changeStat('stress', 0.25 * deltaSeconds);
+    }
+
+    if (this.state.hamster.stats.health <= 0) {
+      this.state.hamster.alive = false;
+      this.state.progression.endingId = 'ending_neglect';
+    }
+  }
+
+  applyPlayerAction(action: PlayerActionType): void {
+    if (!this.state.hamster.alive) return;
+
+    switch (action) {
+      case 'feed_standard':
+        this.changeStat('hunger', -14);
+        this.changeStat('mood', 4);
+        this.incrementInventory('food_standard', -1);
+        break;
+      case 'feed_sweet':
+        this.changeStat('hunger', -22);
+        this.changeStat('mood', 8);
+        this.changeStat('stress', 3);
+        this.state.hamster.flags.hyperactive = true;
+        this.incrementInventory('food_sweet', -1);
+        break;
+      case 'refill_water':
+        this.changeStat('thirst', -20);
+        this.changeStat('mood', 2);
+        break;
+      case 'clean_cage':
+        this.state.cage.cleanliness = clamp(this.state.cage.cleanliness + 30, 0, 100);
+        this.changeStat('stress', -5);
+        this.changeStat('mood', 2);
+        break;
+      case 'handle_hamster': {
+        const timidness = -this.state.hamster.traits.timidBold;
+        const stressDelta = timidness > 0 ? 5 : 1;
+        this.changeStat('stress', stressDelta);
+        this.changeStat('trust', timidness > 0 ? -3 : 2);
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  getVisibleStats(): Pick<HamsterStats, 'hunger' | 'mood' | 'health'> & { cleanliness: number } {
+    return {
+      hunger: this.state.hamster.stats.hunger,
+      mood: this.state.hamster.stats.mood,
+      health: this.state.hamster.stats.health,
+      cleanliness: this.state.cage.cleanliness,
+    };
+  }
+
+  getState(): Readonly<SimulationState> {
+    return this.state;
+  }
+
+  private isNightTime(): boolean {
+    return this.state.timeOfDayMinutes >= 20 * 60 || this.state.timeOfDayMinutes < 6 * 60;
+  }
+
+  private incrementInventory(itemId: string, amount: number): void {
+    const current = this.state.inventory[itemId] ?? 0;
+    this.state.inventory[itemId] = Math.max(current + amount, 0);
+  }
+
+  private changeStat(stat: keyof HamsterStats, delta: number): void {
+    const value = this.state.hamster.stats[stat] + delta;
+    this.state.hamster.stats[stat] = clamp(value, 0, 100);
+  }
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}

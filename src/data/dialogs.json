@@ -1,0 +1,28 @@
+[
+  {
+    "id": "dlg_sweets_warning_1",
+    "speaker": "Hamster Advisor",
+    "title": "Diet Notice",
+    "pages": [
+      "Your hamster seems unusually energetic.",
+      "Consider reducing sugary treats for a while."
+    ],
+    "options": [
+      { "id": "opt_ok", "label": "OK" },
+      { "id": "opt_ignore", "label": "Ignore" }
+    ]
+  },
+  {
+    "id": "dlg_dirty_cage_1",
+    "speaker": "System Message",
+    "title": "Cleanliness Alert",
+    "pages": [
+      "The bedding is starting to smell.",
+      "Filth increases stress and illness risk."
+    ],
+    "options": [
+      { "id": "opt_clean_now", "label": "Clean Now" },
+      { "id": "opt_later", "label": "Later" }
+    ]
+  }
+]
