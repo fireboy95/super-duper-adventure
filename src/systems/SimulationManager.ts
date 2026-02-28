@@ -9,6 +9,13 @@ export class SimulationManager {
 
   constructor(seedState?: SimulationState) {
     this.state = seedState ?? structuredClone(defaults as SimulationState);
+    this.state.eventState ??= {
+      lastTriggeredAtMinutesByEventId: {},
+      lastTriggeredDayByEventId: {},
+      ignoreCountsByEventId: {},
+      triggerCountsByEventId: {},
+      cooldownUntilDayByEventId: {},
+    };
   }
 
   tick(deltaSeconds: number): void {
@@ -124,9 +131,38 @@ export class SimulationManager {
       this.pushUnique(this.state.progression.seenDialogIds, progression.seenDialogIdsAdd);
       this.pushUnique(this.state.progression.seenEventIds, progression.seenEventIdsAdd);
 
+      if (progression.ignoredEventIdsAdd) {
+        this.registerIgnoredEvents(progression.ignoredEventIdsAdd);
+      }
+
       if (typeof progression.endingId === 'string' || progression.endingId === null) {
         this.state.progression.endingId = progression.endingId;
       }
+    }
+  }
+
+
+  registerTriggeredEvent(eventId: string, cooldownDays = 0): void {
+    this.pushUnique(this.state.progression.seenEventIds, [eventId]);
+
+    const nowAbsoluteMinutes = this.state.day * MINUTES_PER_DAY + this.state.timeOfDayMinutes;
+    this.state.eventState.lastTriggeredAtMinutesByEventId[eventId] = nowAbsoluteMinutes;
+    this.state.eventState.lastTriggeredDayByEventId[eventId] = this.state.day;
+    this.state.eventState.triggerCountsByEventId[eventId] = (this.state.eventState.triggerCountsByEventId[eventId] ?? 0) + 1;
+
+    if (cooldownDays > 0) {
+      this.state.eventState.cooldownUntilDayByEventId[eventId] = this.state.day + cooldownDays;
+    }
+
+    console.debug(
+      `[event] State recorded trigger for "${eventId}". count=${this.state.eventState.triggerCountsByEventId[eventId]} cooldownUntil=${this.state.eventState.cooldownUntilDayByEventId[eventId] ?? this.state.day}`,
+    );
+  }
+
+  registerIgnoredEvents(eventIds: string[]): void {
+    for (const eventId of eventIds) {
+      this.state.eventState.ignoreCountsByEventId[eventId] = (this.state.eventState.ignoreCountsByEventId[eventId] ?? 0) + 1;
+      console.debug(`[event] Ignore counter incremented for "${eventId}" -> ${this.state.eventState.ignoreCountsByEventId[eventId]}.`);
     }
   }
 
