@@ -149,14 +149,15 @@ export class UIScene extends Phaser.Scene {
     for (const button of this.dialogOptionButtons) button.destroy();
     this.dialogOptionButtons = [];
 
-    options.forEach((option, index) => {
+    options.forEach((option) => {
       const button = this.createModalButton(option.label, 0x284968, () => {
         this.handleOptionSelection(option);
       });
-      button.setPosition(0, 118 + index * 44);
       this.dialogModal?.add(button);
       this.dialogOptionButtons.push(button);
     });
+
+    this.layoutResponsiveUi(this.scale.width, this.scale.height);
   }
 
   private handleOptionSelection(option: DialogOption): void {
@@ -207,8 +208,9 @@ export class UIScene extends Phaser.Scene {
     const labelText = this.dialogAdvanceButton.list[1] as Phaser.GameObjects.Text;
     labelText.setText(isFinalPage ? 'CLOSE' : 'NEXT');
 
-    this.dialogAdvanceButton.removeAllListeners();
-    this.dialogAdvanceButton.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+    const background = this.dialogAdvanceButton.list[0] as Phaser.GameObjects.Rectangle;
+    background.removeAllListeners('pointerdown');
+    background.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
       event.stopPropagation();
       if (!this.currentDialog) {
         this.closeDialog();
@@ -453,11 +455,11 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createModalButton(label: string, color: number, onPress: () => void): Phaser.GameObjects.Container {
-    const background = this.add.rectangle(320, 0, 420, 34, color, 0.95);
+    const background = this.add.rectangle(0, 0, 420, 34, color, 0.95);
     background.setStrokeStyle(1, 0xe6f0ff, 0.75);
     background.setInteractive({ useHandCursor: true });
 
-    const text = this.add.text(320, 0, label, {
+    const text = this.add.text(0, 0, label, {
       fontFamily: 'monospace',
       fontSize: '13px',
       color: '#ffffff',
@@ -482,6 +484,14 @@ export class UIScene extends Phaser.Scene {
     });
 
     return button;
+  }
+
+  private resizeModalButton(button: Phaser.GameObjects.Container, width: number, fontSize: string): void {
+    const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
+    const label = button.list[1] as Phaser.GameObjects.Text | undefined;
+    background?.setSize(width, 34);
+    label?.setFontSize(fontSize);
+    button.setSize(width, 34);
   }
 
   private handleResize(gameSize: Phaser.Structs.Size): void {
@@ -562,8 +572,32 @@ export class UIScene extends Phaser.Scene {
     }
 
     const dialogWidth = Math.min(560, width - (isNarrow ? 20 : 28));
-    const dialogHeight = Math.min(330, height - this.controlsAreaHeight - (isNarrow ? 24 : 40));
+    const dialogHeight = Math.max(220, Math.min(330, height - this.controlsAreaHeight - (isNarrow ? 24 : 40)));
+    const panelCenterY = height / 2 - (isNarrow ? 12 : 0);
+    const panelTop = panelCenterY - dialogHeight / 2;
+    const panelLeft = width / 2 - dialogWidth / 2;
+
     this.dialogBackdrop?.setPosition(width / 2, height / 2).setSize(width, height);
-    this.dialogPanel?.setPosition(width / 2, height / 2 - (isNarrow ? 12 : 0)).setSize(dialogWidth, Math.max(220, dialogHeight));
+    this.dialogPanel?.setPosition(width / 2, panelCenterY).setSize(dialogWidth, dialogHeight);
+
+    const titleX = panelLeft + 20;
+    this.dialogTitleText?.setPosition(titleX, panelTop + 18);
+    this.dialogSpeakerText?.setPosition(titleX, panelTop + 44);
+    this.dialogPageText?.setPosition(titleX, panelTop + 78).setWordWrapWidth(dialogWidth - 40);
+    this.dialogPageIndicatorText?.setPosition(titleX, panelTop + dialogHeight - 68);
+
+    const modalButtonWidth = Math.max(180, dialogWidth - 40);
+    const modalButtonFont = isNarrow ? '12px' : '13px';
+
+    if (this.dialogAdvanceButton) {
+      this.resizeModalButton(this.dialogAdvanceButton, modalButtonWidth, modalButtonFont);
+      this.dialogAdvanceButton.setPosition(width / 2, panelTop + dialogHeight - 22);
+    }
+
+    this.dialogOptionButtons.forEach((button, index) => {
+      this.resizeModalButton(button, modalButtonWidth, modalButtonFont);
+      const optionsStartY = panelTop + dialogHeight - 62 - this.dialogOptionButtons.length * 40;
+      button.setPosition(width / 2, optionsStartY + index * 40);
+    });
   }
 }
