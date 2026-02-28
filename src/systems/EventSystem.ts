@@ -4,6 +4,9 @@ import type { SimulationState } from '../types/simulation';
 export interface TriggeredEvent {
   id: string;
   dialogId: string;
+  priority: number;
+  queueTimeoutMs?: number;
+  supersedeBelowPriority?: number;
 }
 
 interface PollOptions {
@@ -26,6 +29,8 @@ interface EventDefinition {
   priority: number;
   rarity: number;
   dialogId: string;
+  dialogQueueTimeoutMs?: number;
+  supersedeBelowPriority?: number;
   cooldownDays?: number;
   maxRepeats?: number;
   escalation?: EventEscalation;
@@ -58,7 +63,13 @@ export class EventSystem {
     }
 
     console.debug(`[event] Triggering "${chosen.id}" (dialog: ${chosen.dialogId}).`);
-    return { id: chosen.id, dialogId: chosen.dialogId };
+    return {
+      id: chosen.id,
+      dialogId: chosen.dialogId,
+      priority: chosen.priority,
+      queueTimeoutMs: chosen.dialogQueueTimeoutMs,
+      supersedeBelowPriority: chosen.supersedeBelowPriority,
+    };
   }
 
   private resolveEscalation(eventDef: EventDefinition, state: SimulationState): EventDefinition | null {

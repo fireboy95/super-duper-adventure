@@ -4,6 +4,18 @@ import { DebugConsoleEntry, debugConsole } from '../systems/DebugConsole';
 
 type TopMenuKey = 'feed' | 'care' | 'social';
 
+
+type DialogSource = 'event' | 'system';
+
+interface DialogRequest {
+  dialogId: string;
+  eventId?: string;
+  priority?: number;
+  queueTimeoutMs?: number;
+  supersedeBelowPriority?: number;
+  source?: DialogSource;
+}
+
 export class UIScene extends Phaser.Scene {
   private dialogueSystem = new DialogueSystem();
   private hudText?: Phaser.GameObjects.Text;
@@ -41,6 +53,8 @@ export class UIScene extends Phaser.Scene {
   private currentDialog: DialogEntry | null = null;
   private currentDialogPage = 0;
   private currentDialogEventId: string | null = null;
+  private currentDialogPriority = 0;
+  private pendingDialogs: DialogRequest[] = [];
   private hudBackground?: Phaser.GameObjects.Rectangle;
   private controlsAreaHeight = 0;
 
@@ -92,6 +106,17 @@ export class UIScene extends Phaser.Scene {
     });
   }
 
+
+  update(_time: number, delta: number): void {
+    if (this.pendingDialogs.length === 0) return;
+
+    this.pendingDialogs = this.pendingDialogs.filter((request) => {
+      if (typeof request.queueTimeoutMs !== 'number') return true;
+      request.queueTimeoutMs -= delta;
+      return request.queueTimeoutMs > 0;
+    });
+  }
+
   private bindHudEvents(): void {
     const cageScene = this.scene.get('CageScene');
     cageScene.events.on('hud:update', (payload: { hunger: number; thirst: number; energy: number; health: number; cleanliness: number; mood: number; foodStandard?: number; foodSweet?: number }) => {
@@ -106,26 +131,64 @@ export class UIScene extends Phaser.Scene {
 
   private bindDialogueEvents(): void {
     const cageScene = this.scene.get('CageScene');
-    cageScene.events.on('dialog:show', (payload: string | { dialogId: string; eventId?: string }) => {
+    cageScene.events.on('dialog:show', (payload: string | DialogRequest) => {
       if (typeof payload === 'string') {
-        this.openDialog(payload);
+        this.enqueueOrShowDialog({ dialogId: payload, source: 'system', priority: 100 });
         return;
       }
 
-      this.openDialog(payload.dialogId, payload.eventId);
+      this.enqueueOrShowDialog(payload);
     });
   }
 
-  private openDialog(dialogId: string, eventId?: string): void {
-    const dialog = this.dialogueSystem.getById(dialogId);
+  private enqueueOrShowDialog(request: DialogRequest): void {
+    const normalized = this.normalizeDialogRequest(request);
+
+    if (!this.currentDialog) {
+      this.openDialog(normalized);
+      return;
+    }
+
+    const canSupersedeCurrent = (normalized.priority ?? 0) > this.currentDialogPriority;
+    const currentCanBeSuperseded =
+      typeof normalized.supersedeBelowPriority !== 'number' || this.currentDialogPriority < normalized.supersedeBelowPriority;
+
+    if (canSupersedeCurrent && currentCanBeSuperseded) {
+      this.pendingDialogs.unshift(normalized);
+      this.openNextPendingDialog();
+      return;
+    }
+
+    if (typeof normalized.queueTimeoutMs === 'number' && normalized.queueTimeoutMs <= 0) {
+      console.debug(`[dialog] Dropping dialog "${normalized.dialogId}" due to non-positive queue timeout.`);
+      return;
+    }
+
+    this.pendingDialogs.push(normalized);
+  }
+
+  private normalizeDialogRequest(request: DialogRequest): DialogRequest {
+    return {
+      dialogId: request.dialogId,
+      eventId: request.eventId,
+      priority: request.priority ?? (request.source === 'event' ? 50 : 100),
+      queueTimeoutMs: request.queueTimeoutMs,
+      supersedeBelowPriority: request.supersedeBelowPriority,
+      source: request.source ?? (request.eventId ? 'event' : 'system'),
+    };
+  }
+
+  private openDialog(request: DialogRequest): void {
+    const dialog = this.dialogueSystem.getById(request.dialogId);
     if (!dialog) {
-      console.warn(`[dialog] Unknown dialog ID "${dialogId}" requested.`);
+      console.warn(`[dialog] Unknown dialog ID "${request.dialogId}" requested.`);
       return;
     }
 
     this.currentDialog = dialog;
     this.currentDialogPage = 0;
-    this.currentDialogEventId = eventId ?? null;
+    this.currentDialogEventId = request.eventId ?? null;
+    this.currentDialogPriority = request.priority ?? 0;
     this.dialogBackdrop?.setInteractive();
     this.dialogModal?.setVisible(true);
     this.renderDialog();
@@ -189,7 +252,7 @@ export class UIScene extends Phaser.Scene {
 
     const followUpDialogId = optionEffects.nextDialogId ?? optionEffects.followUpDialogIds?.[0];
     if (followUpDialogId) {
-      this.openDialog(followUpDialogId);
+      this.enqueueOrShowDialog({ dialogId: followUpDialogId, source: 'system', priority: this.currentDialogPriority });
       return;
     }
 
@@ -200,9 +263,21 @@ export class UIScene extends Phaser.Scene {
     this.currentDialog = null;
     this.currentDialogPage = 0;
     this.currentDialogEventId = null;
+    this.currentDialogPriority = 0;
     this.renderDialogOptions([]);
     this.dialogBackdrop?.disableInteractive();
     this.dialogModal?.setVisible(false);
+    this.openNextPendingDialog();
+  }
+
+  private openNextPendingDialog(): void {
+    while (this.pendingDialogs.length > 0) {
+      const next = this.pendingDialogs.shift();
+      if (!next) return;
+
+      this.openDialog(next);
+      return;
+    }
   }
 
   private updateAdvanceButton(isFinalPage: boolean): void {

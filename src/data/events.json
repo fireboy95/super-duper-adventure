@@ -17,7 +17,9 @@
         "op": "lte",
         "value": 85
       }
-    ]
+    ],
+    "dialogQueueTimeoutMs": 18000,
+    "supersedeBelowPriority": 65
   },
   {
     "id": "event_dirty_cage_warning",
@@ -36,7 +38,9 @@
         "op": "lte",
         "value": 35
       }
-    ]
+    ],
+    "dialogQueueTimeoutMs": 18000,
+    "supersedeBelowPriority": 65
   },
   {
     "id": "event_dirty_cage_escalated",
@@ -55,7 +59,9 @@
         "op": "lte",
         "value": 28
       }
-    ]
+    ],
+    "dialogQueueTimeoutMs": 25000,
+    "supersedeBelowPriority": 75
   },
   {
     "id": "event_dirty_cage_critical",
@@ -70,7 +76,9 @@
         "op": "lte",
         "value": 20
       }
-    ]
+    ],
+    "dialogQueueTimeoutMs": 45000,
+    "supersedeBelowPriority": 999
   },
   {
     "id": "event_handling_resistance",
@@ -94,7 +102,9 @@
         "op": "lte",
         "value": 35
       }
-    ]
+    ],
+    "dialogQueueTimeoutMs": 25000,
+    "supersedeBelowPriority": 75
   },
   {
     "id": "event_grudge_critical",
@@ -114,7 +124,9 @@
         "op": "lte",
         "value": 2
       }
-    ]
+    ],
+    "dialogQueueTimeoutMs": 45000,
+    "supersedeBelowPriority": 999
   },
   {
     "id": "event_ambient_sunbeam_nap",
@@ -139,7 +151,9 @@
         "op": "gte",
         "value": 55
       }
-    ]
+    ],
+    "dialogQueueTimeoutMs": 8000,
+    "supersedeBelowPriority": 40
   },
   {
     "id": "event_ambient_tidy_habits",
@@ -164,7 +178,9 @@
         "op": "lte",
         "value": 40
       }
-    ]
+    ],
+    "dialogQueueTimeoutMs": 8000,
+    "supersedeBelowPriority": 40
   },
   {
     "id": "event_ambient_curious_patrol",
@@ -194,7 +210,9 @@
         "op": "gte",
         "value": 50
       }
-    ]
+    ],
+    "dialogQueueTimeoutMs": 8000,
+    "supersedeBelowPriority": 40
   },
   {
     "id": "event_ambient_soft_chatter",
@@ -224,6 +242,8 @@
         "op": "lte",
         "value": 6
       }
-    ]
+    ],
+    "dialogQueueTimeoutMs": 8000,
+    "supersedeBelowPriority": 40
   }
 ]

@@ -107,7 +107,14 @@ export class CageScene extends Phaser.Scene {
 
       if (triggered) {
         this.simulation.registerTriggeredEvent(triggered.id, this.eventSystem.getCooldownDays(triggered.id));
-        this.events.emit('dialog:show', { dialogId: triggered.dialogId, eventId: triggered.id });
+        this.events.emit('dialog:show', {
+          dialogId: triggered.dialogId,
+          eventId: triggered.id,
+          priority: triggered.priority,
+          queueTimeoutMs: triggered.queueTimeoutMs,
+          supersedeBelowPriority: triggered.supersedeBelowPriority,
+          source: 'event',
+        });
       }
     }
 
