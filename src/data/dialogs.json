@@ -24,8 +24,12 @@
             "positiveInteractions": 1
           },
           "progression": {
-            "seenDialogIdsAdd": ["dlg_sweets_warning_1"],
-            "seenEventIdsAdd": ["event_sweets_overload_stage1"]
+            "seenDialogIdsAdd": [
+              "dlg_sweets_warning_1"
+            ],
+            "seenEventIdsAdd": [
+              "event_sweets_overload_stage1"
+            ]
           }
         }
       },
@@ -47,11 +51,19 @@
             "grudge": 2
           },
           "progression": {
-            "seenDialogIdsAdd": ["dlg_sweets_warning_1"],
-            "seenEventIdsAdd": ["event_sweets_overload_stage1"],
-            "ignoredEventIdsAdd": ["event_sweets_overload_stage1"]
+            "seenDialogIdsAdd": [
+              "dlg_sweets_warning_1"
+            ],
+            "seenEventIdsAdd": [
+              "event_sweets_overload_stage1"
+            ],
+            "ignoredEventIdsAdd": [
+              "event_sweets_overload_stage1"
+            ]
           },
-          "followUpDialogIds": ["dlg_dirty_cage_1"]
+          "followUpDialogIds": [
+            "dlg_dirty_cage_1"
+          ]
         }
       }
     ]
@@ -78,8 +90,12 @@
           },
           "progression": {
             "daysSurvivedDelta": 0,
-            "seenDialogIdsAdd": ["dlg_dirty_cage_1"],
-            "seenEventIdsAdd": ["event_dirty_cage_warning"]
+            "seenDialogIdsAdd": [
+              "dlg_dirty_cage_1"
+            ],
+            "seenEventIdsAdd": [
+              "event_dirty_cage_warning"
+            ]
           }
         }
       },
@@ -96,9 +112,15 @@
             "grudge": 1
           },
           "progression": {
-            "seenDialogIdsAdd": ["dlg_dirty_cage_1"],
-            "seenEventIdsAdd": ["event_dirty_cage_warning"],
-            "ignoredEventIdsAdd": ["event_dirty_cage_warning"]
+            "seenDialogIdsAdd": [
+              "dlg_dirty_cage_1"
+            ],
+            "seenEventIdsAdd": [
+              "event_dirty_cage_warning"
+            ],
+            "ignoredEventIdsAdd": [
+              "event_dirty_cage_warning"
+            ]
           },
           "nextDialogId": null
         }
@@ -128,8 +150,12 @@
             "grudge": -1
           },
           "progression": {
-            "seenDialogIdsAdd": ["dlg_dirty_cage_2"],
-            "seenEventIdsAdd": ["event_dirty_cage_escalated"]
+            "seenDialogIdsAdd": [
+              "dlg_dirty_cage_2"
+            ],
+            "seenEventIdsAdd": [
+              "event_dirty_cage_escalated"
+            ]
           }
         }
       },
@@ -146,9 +172,15 @@
             "grudge": 2
           },
           "progression": {
-            "seenDialogIdsAdd": ["dlg_dirty_cage_2"],
-            "seenEventIdsAdd": ["event_dirty_cage_escalated"],
-            "ignoredEventIdsAdd": ["event_dirty_cage_escalated"]
+            "seenDialogIdsAdd": [
+              "dlg_dirty_cage_2"
+            ],
+            "seenEventIdsAdd": [
+              "event_dirty_cage_escalated"
+            ],
+            "ignoredEventIdsAdd": [
+              "event_dirty_cage_escalated"
+            ]
           }
         }
       }
@@ -177,8 +209,12 @@
             "grudge": -2
           },
           "progression": {
-            "seenDialogIdsAdd": ["dlg_dirty_cage_3"],
-            "seenEventIdsAdd": ["event_dirty_cage_critical"]
+            "seenDialogIdsAdd": [
+              "dlg_dirty_cage_3"
+            ],
+            "seenEventIdsAdd": [
+              "event_dirty_cage_critical"
+            ]
           }
         }
       },
@@ -195,9 +231,134 @@
             "grudge": 3
           },
           "progression": {
-            "seenDialogIdsAdd": ["dlg_dirty_cage_3"],
-            "seenEventIdsAdd": ["event_dirty_cage_critical"],
-            "ignoredEventIdsAdd": ["event_dirty_cage_critical"]
+            "seenDialogIdsAdd": [
+              "dlg_dirty_cage_3"
+            ],
+            "seenEventIdsAdd": [
+              "event_dirty_cage_critical"
+            ],
+            "ignoredEventIdsAdd": [
+              "event_dirty_cage_critical"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "dlg_handling_trust_warning",
+    "speaker": "Behavior Monitor",
+    "title": "Handling Resistance",
+    "pages": [
+      "Your hamster is pulling away from your hands.",
+      "Trust is low and stress reactivity is rising."
+    ],
+    "options": [
+      {
+        "id": "opt_handle_warning_slow_down",
+        "label": "Back off and give space",
+        "effects": {
+          "stats": {
+            "stress": -4,
+            "mood": 1
+          },
+          "memory": {
+            "positiveInteractions": 1,
+            "grudge": -1
+          },
+          "progression": {
+            "seenDialogIdsAdd": [
+              "dlg_handling_trust_warning"
+            ],
+            "seenEventIdsAdd": [
+              "event_handling_resistance"
+            ]
+          }
+        }
+      },
+      {
+        "id": "opt_handle_warning_force",
+        "label": "Handle anyway",
+        "effects": {
+          "stats": {
+            "stress": 5,
+            "mood": -2,
+            "trust": -2
+          },
+          "memory": {
+            "negativeInteractions": 1,
+            "grudge": 2
+          },
+          "progression": {
+            "seenDialogIdsAdd": [
+              "dlg_handling_trust_warning"
+            ],
+            "seenEventIdsAdd": [
+              "event_handling_resistance"
+            ],
+            "ignoredEventIdsAdd": [
+              "event_handling_resistance"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "dlg_grudge_critical_warning",
+    "speaker": "Behavior Monitor",
+    "title": "Critical Trust Breakdown",
+    "pages": [
+      "The hamster now anticipates handling as a threat.",
+      "Without gentler care, mood and health can spiral down."
+    ],
+    "options": [
+      {
+        "id": "opt_grudge_repair",
+        "label": "Start trust repair routine",
+        "effects": {
+          "stats": {
+            "stress": -6,
+            "mood": 2,
+            "trust": 1
+          },
+          "memory": {
+            "positiveInteractions": 1,
+            "grudge": -3
+          },
+          "progression": {
+            "seenDialogIdsAdd": [
+              "dlg_grudge_critical_warning"
+            ],
+            "seenEventIdsAdd": [
+              "event_grudge_critical"
+            ]
+          }
+        }
+      },
+      {
+        "id": "opt_grudge_ignore",
+        "label": "Ignore warning",
+        "effects": {
+          "stats": {
+            "stress": 7,
+            "mood": -3,
+            "health": -2
+          },
+          "memory": {
+            "negativeInteractions": 1,
+            "grudge": 2
+          },
+          "progression": {
+            "seenDialogIdsAdd": [
+              "dlg_grudge_critical_warning"
+            ],
+            "seenEventIdsAdd": [
+              "event_grudge_critical"
+            ],
+            "ignoredEventIdsAdd": [
+              "event_grudge_critical"
+            ]
           }
         }
       }

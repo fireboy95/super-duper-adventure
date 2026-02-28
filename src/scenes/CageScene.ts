@@ -166,11 +166,23 @@ export class CageScene extends Phaser.Scene {
     this.statusText.setText([
       `Day ${simulationState.day} - ${clockHours.toString().padStart(2, '0')}:${clockMinutes.toString().padStart(2, '0')}`,
       `Hunger: ${visible.hunger.toFixed(1)}`,
+      `Thirst: ${visible.thirst.toFixed(1)}`,
+      `Energy: ${visible.energy.toFixed(1)}`,
       `Mood: ${visible.mood.toFixed(1)}`,
       `Health: ${visible.health.toFixed(1)}`,
       `Cleanliness: ${visible.cleanliness.toFixed(1)}`,
+      `Stress: ${visible.stress.toFixed(1)} | Trust: ${visible.trust.toFixed(1)} | Grudge: ${visible.grudge.toFixed(1)}`,
       'Tap buttons (or left/right click): feed / clean',
     ]);
+
+    this.events.emit('hud:update', {
+      hunger: visible.hunger,
+      thirst: visible.thirst,
+      energy: visible.energy,
+      health: visible.health,
+      cleanliness: visible.cleanliness,
+      mood: visible.mood,
+    });
   }
 
   private handleFeedAction(): void {

@@ -7,8 +7,16 @@
     "cooldownDays": 1,
     "maxRepeats": 4,
     "conditions": [
-      { "path": "hamster.flags.hyperactive", "op": "eq", "value": true },
-      { "path": "hamster.stats.health", "op": "lte", "value": 85 }
+      {
+        "path": "hamster.flags.hyperactive",
+        "op": "eq",
+        "value": true
+      },
+      {
+        "path": "hamster.stats.health",
+        "op": "lte",
+        "value": 85
+      }
     ]
   },
   {
@@ -23,7 +31,11 @@
       "ignoreThreshold": 2
     },
     "conditions": [
-      { "path": "cage.cleanliness", "op": "lte", "value": 35 }
+      {
+        "path": "cage.cleanliness",
+        "op": "lte",
+        "value": 35
+      }
     ]
   },
   {
@@ -38,7 +50,11 @@
       "ignoreThreshold": 3
     },
     "conditions": [
-      { "path": "cage.cleanliness", "op": "lte", "value": 28 }
+      {
+        "path": "cage.cleanliness",
+        "op": "lte",
+        "value": 28
+      }
     ]
   },
   {
@@ -49,7 +65,55 @@
     "cooldownDays": 2,
     "maxRepeats": 2,
     "conditions": [
-      { "path": "cage.cleanliness", "op": "lte", "value": 20 }
+      {
+        "path": "cage.cleanliness",
+        "op": "lte",
+        "value": 20
+      }
+    ]
+  },
+  {
+    "id": "event_handling_resistance",
+    "priority": 55,
+    "rarity": 0.85,
+    "dialogId": "dlg_handling_trust_warning",
+    "cooldownDays": 1,
+    "maxRepeats": 4,
+    "escalation": {
+      "nextEventId": "event_grudge_critical",
+      "ignoreThreshold": 2
+    },
+    "conditions": [
+      {
+        "path": "hamster.memory.negativeInteractions",
+        "op": "gte",
+        "value": 3
+      },
+      {
+        "path": "hamster.stats.trust",
+        "op": "lte",
+        "value": 35
+      }
+    ]
+  },
+  {
+    "id": "event_grudge_critical",
+    "priority": 75,
+    "rarity": 1,
+    "dialogId": "dlg_grudge_critical_warning",
+    "cooldownDays": 2,
+    "maxRepeats": 3,
+    "conditions": [
+      {
+        "path": "hamster.memory.grudge",
+        "op": "gte",
+        "value": 8
+      },
+      {
+        "path": "hamster.memory.positiveInteractions",
+        "op": "lte",
+        "value": 2
+      }
     ]
   }
 ]

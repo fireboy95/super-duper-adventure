@@ -46,6 +46,12 @@ export class SimulationManager {
       this.changeStat('stress', 0.25 * deltaSeconds);
     }
 
+    const { grudge } = this.state.hamster.memory;
+    if (grudge >= 6) {
+      this.changeStat('stress', 0.08 * deltaSeconds * grudge);
+      this.changeStat('mood', -0.05 * deltaSeconds * grudge);
+    }
+
     if (this.state.hamster.stats.health <= 0) {
       this.state.hamster.alive = false;
       this.state.progression.endingId = 'ending_neglect';
@@ -78,10 +84,25 @@ export class SimulationManager {
         this.changeStat('mood', 2);
         break;
       case 'handle_hamster': {
-        const timidness = -this.state.hamster.traits.timidBold;
-        const stressDelta = timidness > 0 ? 5 : 1;
-        this.changeStat('stress', stressDelta);
-        this.changeStat('trust', timidness > 0 ? -3 : 2);
+        const { timidBold, neuroticChill } = this.state.hamster.traits;
+        const { trust } = this.state.hamster.stats;
+        const { grudge } = this.state.hamster.memory;
+        const isRelaxed = timidBold + neuroticChill + trust * 0.07 - grudge * 0.2 >= 0;
+        const grudgePenalty = clamp(grudge / 20, 0, 0.85);
+
+        if (isRelaxed) {
+          this.changeStat('stress', 1 + grudge * 0.2);
+          this.changeStat('trust', 2 + timidBold * 0.8);
+          this.changeStat('mood', 5 * (1 - grudgePenalty));
+          this.changeMemory('positiveInteractions', 1);
+          this.changeMemory('grudge', -Math.max(1, Math.round((timidBold + 1) * 0.75)));
+        } else {
+          this.changeStat('stress', 4 + grudge * 0.45 + Math.max(0, -neuroticChill));
+          this.changeStat('trust', -2.5 - Math.max(0, -timidBold));
+          this.changeStat('mood', -2 - grudge * 0.15);
+          this.changeMemory('negativeInteractions', 1);
+          this.changeMemory('grudge', 1 + Math.round(Math.max(0, -timidBold)));
+        }
         break;
       }
       default:
@@ -166,12 +187,22 @@ export class SimulationManager {
     }
   }
 
-  getVisibleStats(): Pick<HamsterStats, 'hunger' | 'mood' | 'health'> & { cleanliness: number } {
+  getVisibleStats(): Pick<HamsterStats, 'hunger' | 'thirst' | 'energy' | 'mood' | 'health'> & {
+    cleanliness: number;
+    stress: number;
+    trust: number;
+    grudge: number;
+  } {
     return {
       hunger: this.state.hamster.stats.hunger,
+      thirst: this.state.hamster.stats.thirst,
+      energy: this.state.hamster.stats.energy,
       mood: this.state.hamster.stats.mood,
       health: this.state.hamster.stats.health,
       cleanliness: this.state.cage.cleanliness,
+      stress: this.state.hamster.stats.stress,
+      trust: this.state.hamster.stats.trust,
+      grudge: this.state.hamster.memory.grudge,
     };
   }
 
@@ -205,6 +236,10 @@ export class SimulationManager {
   private changeStat(stat: keyof HamsterStats, delta: number): void {
     const value = this.state.hamster.stats[stat] + delta;
     this.state.hamster.stats[stat] = clamp(value, 0, 100);
+  }
+
+  private changeMemory(memoryKey: keyof SimulationState['hamster']['memory'], delta: number): void {
+    this.state.hamster.memory[memoryKey] = clamp(this.state.hamster.memory[memoryKey] + delta, 0, 100);
   }
 }
 
