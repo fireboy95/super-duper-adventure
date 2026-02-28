@@ -414,7 +414,17 @@ export class UIScene extends Phaser.Scene {
     const actions: Array<{ key: string; icon: string; label: string; color: number; onPress: () => void }> = [
       { key: 'feed-standard', icon: '🥣', label: 'FEED', color: 0x306a43, onPress: () => this.scene.get('CageScene').events.emit('action:feed') },
       { key: 'feed-sweet', icon: '🍬', label: 'TREAT', color: 0x6e3e8c, onPress: () => this.scene.get('CageScene').events.emit('action:feed-sweet') },
-      { key: 'refill-water', icon: '💧', label: 'WATER', color: 0x2e6f95, onPress: () => this.scene.get('CageScene').events.emit('action:refill-water') },
+      {
+        key: 'refill-water',
+        icon: '💧',
+        label: 'WATER',
+        color: 0x2e6f95,
+        onPress: () => {
+          const cageEvents = this.scene.get('CageScene').events;
+          cageEvents.emit('action:refill-water');
+          cageEvents.emit('action:refill_water');
+        },
+      },
       { key: 'clean', icon: '🧽', label: 'CLEAN', color: 0x365f82, onPress: () => this.scene.get('CageScene').events.emit('action:clean') },
       { key: 'handle', icon: '🤝', label: 'HANDLE', color: 0x7a5738, onPress: () => this.scene.get('CageScene').events.emit('action:handle') },
     ];

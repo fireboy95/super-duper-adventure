@@ -63,6 +63,7 @@ export class CageScene extends Phaser.Scene {
     this.events.on('action:feed', this.handleFeedAction, this);
     this.events.on('action:feed-sweet', this.handleFeedSweetAction, this);
     this.events.on('action:refill-water', this.handleRefillWaterAction, this);
+    this.events.on('action:refill_water', this.handleRefillWaterAction, this);
     this.events.on('action:handle', this.handleHandleAction, this);
     this.events.on('action:clean', this.handleCleanAction, this);
     this.events.on('dialog:apply-effects', this.handleDialogEffects, this);
@@ -76,6 +77,7 @@ export class CageScene extends Phaser.Scene {
       this.events.off('action:feed', this.handleFeedAction, this);
       this.events.off('action:feed-sweet', this.handleFeedSweetAction, this);
       this.events.off('action:refill-water', this.handleRefillWaterAction, this);
+      this.events.off('action:refill_water', this.handleRefillWaterAction, this);
       this.events.off('action:handle', this.handleHandleAction, this);
       this.events.off('action:clean', this.handleCleanAction, this);
       this.events.off('dialog:apply-effects', this.handleDialogEffects, this);
