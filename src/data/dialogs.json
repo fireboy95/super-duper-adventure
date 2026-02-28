@@ -363,5 +363,118 @@
         }
       }
     ]
+  },
+  {
+    "id": "dlg_ambient_sunbeam_nap",
+    "speaker": "Cage Cam",
+    "title": "Sunbeam Routine",
+    "pages": [
+      "Your hamster found a warm strip of sunlight and stretched out with a tiny sigh.",
+      "No warning here\u2014just a calm moment that usually means comfort and trust are holding steady."
+    ],
+    "options": [
+      {
+        "id": "opt_ambient_sunbeam_observe",
+        "label": "Let the nap continue",
+        "effects": {
+          "stats": {
+            "stress": -1,
+            "mood": 1
+          },
+          "progression": {
+            "seenDialogIdsAdd": [
+              "dlg_ambient_sunbeam_nap"
+            ],
+            "seenEventIdsAdd": [
+              "event_ambient_sunbeam_nap"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "dlg_ambient_tidy_habits",
+    "speaker": "Habitat Note",
+    "title": "Tidy Territory",
+    "pages": [
+      "The nest corner is neatly arranged again\u2014your hamster has been doing little patrol-and-fluff passes.",
+      "Clean surroundings are reinforcing good habits, and the whole enclosure feels low tension."
+    ],
+    "options": [
+      {
+        "id": "opt_ambient_tidy_ack",
+        "label": "Nice work, little architect",
+        "effects": {
+          "stats": {
+            "mood": 1
+          },
+          "memory": {
+            "positiveInteractions": 1
+          },
+          "progression": {
+            "seenDialogIdsAdd": [
+              "dlg_ambient_tidy_habits"
+            ],
+            "seenEventIdsAdd": [
+              "event_ambient_tidy_habits"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "dlg_ambient_curious_patrol",
+    "speaker": "Behavior Monitor",
+    "title": "Curious Patrol",
+    "pages": [
+      "Whiskers forward, your hamster made a full loop of the cage, checking each toy and tunnel entrance.",
+      "This kind of exploratory pacing usually appears when needs are met and stress remains manageable."
+    ],
+    "options": [
+      {
+        "id": "opt_ambient_patrol_note",
+        "label": "Log the healthy behavior",
+        "effects": {
+          "progression": {
+            "seenDialogIdsAdd": [
+              "dlg_ambient_curious_patrol"
+            ],
+            "seenEventIdsAdd": [
+              "event_ambient_curious_patrol"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "dlg_ambient_soft_chatter",
+    "speaker": "Room Audio",
+    "title": "Soft Chatter",
+    "pages": [
+      "A few quiet chirps came from the bedding while your hamster settled in after a snack.",
+      "Not a request, not a crisis\u2014just ambient chatter that tends to happen in stable routines."
+    ],
+    "options": [
+      {
+        "id": "opt_ambient_chatter_listen",
+        "label": "Enjoy the quiet update",
+        "effects": {
+          "stats": {
+            "stress": -1
+          },
+          "progression": {
+            "seenDialogIdsAdd": [
+              "dlg_ambient_soft_chatter"
+            ],
+            "seenEventIdsAdd": [
+              "event_ambient_soft_chatter"
+            ]
+          }
+        }
+      }
+    ]
   }
 ]

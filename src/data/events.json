@@ -115,5 +115,115 @@
         "value": 2
       }
     ]
+  },
+  {
+    "id": "event_ambient_sunbeam_nap",
+    "priority": 15,
+    "rarity": 0.65,
+    "dialogId": "dlg_ambient_sunbeam_nap",
+    "cooldownDays": 2,
+    "maxRepeats": 8,
+    "conditions": [
+      {
+        "path": "hamster.stats.mood",
+        "op": "gte",
+        "value": 55
+      },
+      {
+        "path": "hamster.stats.stress",
+        "op": "lte",
+        "value": 45
+      },
+      {
+        "path": "cage.cleanliness",
+        "op": "gte",
+        "value": 55
+      }
+    ]
+  },
+  {
+    "id": "event_ambient_tidy_habits",
+    "priority": 14,
+    "rarity": 0.6,
+    "dialogId": "dlg_ambient_tidy_habits",
+    "cooldownDays": 3,
+    "maxRepeats": 7,
+    "conditions": [
+      {
+        "path": "cage.cleanliness",
+        "op": "gte",
+        "value": 65
+      },
+      {
+        "path": "hamster.stats.mood",
+        "op": "gte",
+        "value": 58
+      },
+      {
+        "path": "hamster.stats.stress",
+        "op": "lte",
+        "value": 40
+      }
+    ]
+  },
+  {
+    "id": "event_ambient_curious_patrol",
+    "priority": 16,
+    "rarity": 0.7,
+    "dialogId": "dlg_ambient_curious_patrol",
+    "cooldownDays": 1,
+    "maxRepeats": 10,
+    "conditions": [
+      {
+        "path": "hamster.stats.mood",
+        "op": "gte",
+        "value": 62
+      },
+      {
+        "path": "hamster.stats.stress",
+        "op": "lte",
+        "value": 42
+      },
+      {
+        "path": "cage.cleanliness",
+        "op": "gte",
+        "value": 55
+      },
+      {
+        "path": "hamster.stats.energy",
+        "op": "gte",
+        "value": 50
+      }
+    ]
+  },
+  {
+    "id": "event_ambient_soft_chatter",
+    "priority": 13,
+    "rarity": 0.55,
+    "dialogId": "dlg_ambient_soft_chatter",
+    "cooldownDays": 2,
+    "maxRepeats": 9,
+    "conditions": [
+      {
+        "path": "hamster.stats.mood",
+        "op": "gte",
+        "value": 55
+      },
+      {
+        "path": "cage.cleanliness",
+        "op": "gte",
+        "value": 55
+      },
+      {
+        "path": "hamster.stats.stress",
+        "op": "lte",
+        "value": 45
+      },
+      {
+        "path": "hamster.memory.grudge",
+        "op": "lte",
+        "value": 6
+      }
+    ]
   }
 ]
