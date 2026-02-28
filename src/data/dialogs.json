@@ -65,6 +65,28 @@
             "dlg_dirty_cage_1"
           ]
         }
+      },
+      {
+        "id": "opt_compromise",
+        "label": "Offer water and wait it out",
+        "effects": {
+          "stats": {
+            "thirst": -8,
+            "stress": -1,
+            "mood": 1
+          },
+          "memory": {
+            "positiveInteractions": 1
+          },
+          "progression": {
+            "seenDialogIdsAdd": [
+              "dlg_sweets_warning_1"
+            ],
+            "seenEventIdsAdd": [
+              "event_sweets_overload_stage1"
+            ]
+          }
+        }
       }
     ]
   },
@@ -123,6 +145,27 @@
             ]
           },
           "nextDialogId": null
+        }
+      },
+      {
+        "id": "opt_quick_spot_clean",
+        "label": "Quick spot-clean",
+        "effects": {
+          "stats": {
+            "stress": -2,
+            "mood": 1
+          },
+          "memory": {
+            "positiveInteractions": 1
+          },
+          "progression": {
+            "seenDialogIdsAdd": [
+              "dlg_dirty_cage_1"
+            ],
+            "seenEventIdsAdd": [
+              "event_dirty_cage_warning"
+            ]
+          }
         }
       }
     ]
@@ -183,6 +226,27 @@
             ]
           }
         }
+      },
+      {
+        "id": "opt_partial_clean_escalated",
+        "label": "Do a partial clean",
+        "effects": {
+          "stats": {
+            "stress": -3,
+            "health": 1
+          },
+          "memory": {
+            "positiveInteractions": 1
+          },
+          "progression": {
+            "seenDialogIdsAdd": [
+              "dlg_dirty_cage_2"
+            ],
+            "seenEventIdsAdd": [
+              "event_dirty_cage_escalated"
+            ]
+          }
+        }
       }
     ]
   },
@@ -229,6 +293,30 @@
           "memory": {
             "negativeInteractions": 2,
             "grudge": 3
+          },
+          "progression": {
+            "seenDialogIdsAdd": [
+              "dlg_dirty_cage_3"
+            ],
+            "seenEventIdsAdd": [
+              "event_dirty_cage_critical"
+            ],
+            "ignoredEventIdsAdd": [
+              "event_dirty_cage_critical"
+            ]
+          }
+        }
+      },
+      {
+        "id": "opt_call_reminder_critical",
+        "label": "Set urgent reminder",
+        "effects": {
+          "stats": {
+            "stress": 2,
+            "health": -1
+          },
+          "memory": {
+            "negativeInteractions": 1
           },
           "progression": {
             "seenDialogIdsAdd": [
@@ -301,6 +389,29 @@
             ]
           }
         }
+      },
+      {
+        "id": "opt_handle_gentle_offer",
+        "label": "Offer a treat first",
+        "effects": {
+          "stats": {
+            "trust": 2,
+            "stress": -2,
+            "mood": 2
+          },
+          "memory": {
+            "positiveInteractions": 1,
+            "grudge": -1
+          },
+          "progression": {
+            "seenDialogIdsAdd": [
+              "dlg_handling_trust_warning"
+            ],
+            "seenEventIdsAdd": [
+              "event_handling_resistance"
+            ]
+          }
+        }
       }
     ]
   },
@@ -357,6 +468,29 @@
               "event_grudge_critical"
             ],
             "ignoredEventIdsAdd": [
+              "event_grudge_critical"
+            ]
+          }
+        }
+      },
+      {
+        "id": "opt_rebuild_trust_plan",
+        "label": "Start trust rebuild plan",
+        "effects": {
+          "stats": {
+            "trust": 3,
+            "stress": -3,
+            "mood": 1
+          },
+          "memory": {
+            "positiveInteractions": 1,
+            "grudge": -2
+          },
+          "progression": {
+            "seenDialogIdsAdd": [
+              "dlg_grudge_critical_warning"
+            ],
+            "seenEventIdsAdd": [
               "event_grudge_critical"
             ]
           }
