@@ -10,13 +10,11 @@ type ConsoleMethod = 'log' | 'info' | 'warn' | 'error' | 'debug';
 export class UiScene extends Phaser.Scene {
   private layeredMenu?: LayeredIconMenu;
 
-  private debugButtonContainer?: Phaser.GameObjects.Container;
-  private debugButtonBackground?: Phaser.GameObjects.Rectangle;
-  private debugButtonLabel?: Phaser.GameObjects.Text;
   private debugPaneContainer?: Phaser.GameObjects.Container;
   private debugPaneBackground?: Phaser.GameObjects.Rectangle;
   private debugPaneTexture?: Phaser.GameObjects.TileSprite;
   private debugPaneText?: Phaser.GameObjects.Text;
+  private debugPaneExitButton?: Phaser.GameObjects.Container;
 
   private isDebugPaneExpanded = false;
   private debugPaneHeight = 0;
@@ -55,8 +53,6 @@ export class UiScene extends Phaser.Scene {
     this.layeredMenu?.destroy();
     this.layeredMenu = undefined;
 
-    this.debugButtonContainer?.destroy();
-    this.debugButtonContainer = undefined;
     this.debugPaneContainer?.destroy();
     this.debugPaneContainer = undefined;
   }
@@ -65,29 +61,6 @@ export class UiScene extends Phaser.Scene {
     this.createDebugTexture();
 
     const { width } = this.scale;
-    const buttonWidth = 88;
-    const buttonHeight = 24;
-
-    this.debugButtonBackground = this.add
-      .rectangle(0, 0, buttonWidth, buttonHeight, 0x000000, 0.2)
-      .setStrokeStyle(1, 0x74c6ff, 0.7)
-      .setOrigin(0.5);
-
-    this.debugButtonLabel = this.add
-      .text(0, 0, 'Debug', {
-        fontFamily: 'monospace',
-        fontSize: '13px',
-        color: '#bfe7ff',
-      })
-      .setOrigin(0.5);
-
-    this.debugButtonContainer = this.add.container(width / 2, 14, [this.debugButtonBackground, this.debugButtonLabel]);
-    this.debugButtonContainer.setSize(buttonWidth, buttonHeight);
-    this.debugButtonContainer.setScrollFactor(0).setDepth(1001);
-    this.debugButtonContainer
-      .setInteractive({ useHandCursor: true })
-      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => this.toggleDebugPane());
-
     this.debugPaneBackground = this.add.rectangle(0, 0, width, 0, 0x060708, 0.52).setOrigin(0.5, 0).setStrokeStyle(1, 0x7dc6ff, 0.45);
     this.debugPaneTexture = this.add.tileSprite(0, 0, width, 0, DEBUG_TEXTURE_KEY).setOrigin(0.5, 0).setAlpha(0.28);
     this.debugPaneText = this.add
@@ -101,9 +74,39 @@ export class UiScene extends Phaser.Scene {
       .setPadding(14, 18, 14, 14)
       .setWordWrapWidth(Math.max(200, width - 48));
 
-    this.debugPaneContainer = this.add.container(width / 2, 28, [this.debugPaneBackground, this.debugPaneTexture, this.debugPaneText]);
+    this.debugPaneExitButton = this.createDebugPaneExitButton();
+
+    this.debugPaneContainer = this.add.container(width / 2, 28, [
+      this.debugPaneBackground,
+      this.debugPaneTexture,
+      this.debugPaneText,
+      this.debugPaneExitButton,
+    ]);
     this.debugPaneContainer.setDepth(1000).setScrollFactor(0).setVisible(false);
     this.refreshDebugPaneLayout();
+  }
+
+  private createDebugPaneExitButton(): Phaser.GameObjects.Container {
+    const buttonWidth = 92;
+    const buttonHeight = 30;
+
+    const bg = this.add
+      .rectangle(0, 0, buttonWidth, buttonHeight, 0x1f3042, 0.92)
+      .setStrokeStyle(1, 0x7dc6ff, 0.85)
+      .setOrigin(0, 0);
+
+    const label = this.add
+      .text(buttonWidth / 2, buttonHeight / 2, 'Exit Debug', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '12px',
+        color: '#dff4ff',
+      })
+      .setOrigin(0.5);
+
+    const hitArea = this.add.zone(0, 0, buttonWidth, buttonHeight).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    hitArea.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => this.setDebugPaneOpen(false));
+
+    return this.add.container(0, 0, [bg, label, hitArea]);
   }
 
   private createDebugTexture(): void {
@@ -133,18 +136,16 @@ export class UiScene extends Phaser.Scene {
     this.refreshDebugPaneLayout();
   }
 
-  private toggleDebugPane(): void {
-    const nextExpandedState = !this.isDebugPaneExpanded;
-    this.isDebugPaneExpanded = nextExpandedState;
-
-    if (!this.debugPaneContainer || !this.debugButtonContainer || !this.debugButtonLabel) {
+  private setDebugPaneOpen(isOpen: boolean): void {
+    if (!this.debugPaneContainer) {
       return;
     }
 
-    this.debugPaneContainer.setVisible(true);
-    this.debugButtonLabel.setText(nextExpandedState ? 'Close' : 'Debug');
+    this.isDebugPaneExpanded = isOpen;
 
-    const targetHeight = nextExpandedState ? Math.max(180, this.scale.height * 0.72) : 0;
+    this.debugPaneContainer.setVisible(true);
+
+    const targetHeight = isOpen ? Math.max(180, this.scale.height * 0.72) : 0;
 
     this.tweens.add({
       targets: this,
@@ -161,13 +162,18 @@ export class UiScene extends Phaser.Scene {
   }
 
   private refreshDebugPaneLayout(): void {
-    if (!this.debugButtonContainer || !this.debugPaneContainer || !this.debugPaneBackground || !this.debugPaneTexture || !this.debugPaneText) {
+    if (
+      !this.debugPaneContainer ||
+      !this.debugPaneBackground ||
+      !this.debugPaneTexture ||
+      !this.debugPaneText ||
+      !this.debugPaneExitButton
+    ) {
       return;
     }
 
     const { width } = this.scale;
 
-    this.debugButtonContainer.setPosition(width / 2, 14);
     this.debugPaneContainer.setPosition(width / 2, 28);
 
     this.debugPaneBackground.setSize(width, this.debugPaneHeight);
@@ -176,6 +182,8 @@ export class UiScene extends Phaser.Scene {
       .setWordWrapWidth(Math.max(200, width - 48))
       .setPosition(0, 0)
       .setCrop(0, 0, width, Math.max(0, this.debugPaneHeight - 8));
+
+    this.debugPaneExitButton.setPosition(width / 2 - 106, 8).setVisible(this.debugPaneHeight > 48);
 
     this.refreshDebugText();
   }
@@ -310,6 +318,13 @@ export class UiScene extends Phaser.Scene {
             label: 'Accessibility',
             color: 0xfc8c29,
             onSelect: () => this.navigate('settings-scene'),
+          },
+          {
+            id: 'debug-pane',
+            icon: '🪲',
+            label: 'Debug Pane',
+            color: 0x577590,
+            onSelect: () => this.setDebugPaneOpen(true),
           },
         ],
       },
