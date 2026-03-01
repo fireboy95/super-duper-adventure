@@ -20,6 +20,7 @@ export class UiScene extends Phaser.Scene {
   private debugPaneContainer?: Phaser.GameObjects.Container;
   private debugPaneBackground?: Phaser.GameObjects.Rectangle;
   private debugPaneTexture?: Phaser.GameObjects.TileSprite;
+  private debugPaneInteractionShield?: Phaser.GameObjects.Zone;
   private debugPaneScrollHitArea?: Phaser.GameObjects.Zone;
   private debugPaneText?: Phaser.GameObjects.Text;
   private debugCommandInputContainer?: Phaser.GameObjects.Container;
@@ -71,6 +72,7 @@ export class UiScene extends Phaser.Scene {
       this.debugButtonContainer = undefined;
       this.debugPaneContainer?.destroy();
       this.debugPaneContainer = undefined;
+      this.debugPaneInteractionShield = undefined;
       this.debugPaneScrollHitArea = undefined;
       this.debugPaneText = undefined;
       this.debugCommandInputContainer = undefined;
@@ -107,6 +109,7 @@ export class UiScene extends Phaser.Scene {
     this.debugButtonContainer = undefined;
     this.debugPaneContainer?.destroy();
     this.debugPaneContainer = undefined;
+    this.debugPaneInteractionShield = undefined;
     this.debugPaneScrollHitArea = undefined;
     this.debugCommandInputContainer = undefined;
     this.debugCommandInputBackground = undefined;
@@ -145,6 +148,18 @@ export class UiScene extends Phaser.Scene {
 
     this.debugPaneBackground = this.add.rectangle(0, 0, width, 0, 0x060708, 0.52).setOrigin(0.5, 0).setStrokeStyle(1, 0x7dc6ff, 0.45);
     this.debugPaneTexture = this.add.tileSprite(0, 0, width, 0, DEBUG_TEXTURE_KEY).setOrigin(0.5, 0).setAlpha(0.28);
+    this.debugPaneInteractionShield = this.add.zone(0, 0, width, 0).setOrigin(0.5, 0);
+    this.debugPaneInteractionShield
+      .setInteractive()
+      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (pointer: Phaser.Input.Pointer) => {
+        pointer.event.stopPropagation();
+      })
+      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, (pointer: Phaser.Input.Pointer) => {
+        pointer.event.stopPropagation();
+      })
+      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_MOVE, (pointer: Phaser.Input.Pointer) => {
+        pointer.event.stopPropagation();
+      });
     this.debugPaneScrollHitArea = this.add.zone(0, 0, 0, 0).setOrigin(0, 0);
     this.debugPaneText = this.add
       .text(0, 0, '', {
@@ -217,6 +232,7 @@ export class UiScene extends Phaser.Scene {
     this.debugPaneContainer = this.add.container(width / 2, 28, [
       this.debugPaneBackground,
       this.debugPaneTexture,
+      this.debugPaneInteractionShield,
       this.debugPaneScrollHitArea,
       this.debugPaneText,
       this.debugCommandInputContainer,
@@ -348,6 +364,7 @@ export class UiScene extends Phaser.Scene {
       !this.debugPaneContainer ||
       !this.debugPaneBackground ||
       !this.debugPaneTexture ||
+      !this.debugPaneInteractionShield ||
       !this.debugPaneScrollHitArea ||
       !this.debugPaneText ||
       !this.debugCommandInputContainer ||
@@ -367,6 +384,10 @@ export class UiScene extends Phaser.Scene {
 
     this.debugPaneBackground.setSize(width, this.debugPaneHeight);
     this.debugPaneTexture.setSize(width, this.debugPaneHeight);
+    this.debugPaneInteractionShield.setSize(width, this.debugPaneHeight).setPosition(0, 0);
+    if (this.debugPaneInteractionShield.input?.hitArea && 'setTo' in this.debugPaneInteractionShield.input.hitArea) {
+      this.debugPaneInteractionShield.input.hitArea.setTo(-width / 2, 0, width, this.debugPaneHeight);
+    }
     const textAreaWidth = Math.max(200, width - 48);
     const textAreaHeight = Math.max(0, this.debugPaneHeight - 68);
     this.debugPaneScrollHitArea
@@ -500,6 +521,10 @@ export class UiScene extends Phaser.Scene {
   private setDebugPaneInputEnabled(enabled: boolean): void {
     if (this.debugPaneScrollHitArea?.input) {
       this.debugPaneScrollHitArea.input.enabled = enabled;
+    }
+
+    if (this.debugPaneInteractionShield?.input) {
+      this.debugPaneInteractionShield.input.enabled = enabled;
     }
 
     if (this.debugCommandInputContainer?.input) {
