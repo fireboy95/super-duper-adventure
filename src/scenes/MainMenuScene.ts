@@ -16,7 +16,7 @@ export class MainMenuScene extends Phaser.Scene {
     const titleY = Math.max(110, height * 0.28);
 
     this.add
-      .text(centerX, titleY, "ARCADE ADVENTURE", {
+      .text(centerX, titleY, "OUTPOST CARETAKER", {
         fontFamily: 'monospace',
         fontSize: '28px',
         color: '#f0f0f0',
@@ -26,7 +26,7 @@ export class MainMenuScene extends Phaser.Scene {
     const hasSave = this.saveSystem.hasSave();
 
     const continueEntry = this.add
-      .text(centerX, titleY + 88, hasSave ? '[ CONTINUE ]' : '[ CONTINUE - UNAVAILABLE ]', {
+      .text(centerX, titleY + 88, hasSave ? '[ RESUME SHIFT ]' : '[ RESUME SHIFT - UNAVAILABLE ]', {
         fontFamily: 'monospace',
         fontSize: '20px',
         color: hasSave ? '#00ff99' : '#666666',
@@ -42,7 +42,7 @@ export class MainMenuScene extends Phaser.Scene {
     }
 
     const newGame = this.add
-      .text(centerX, titleY + 132, '[ NEW GAME ]', {
+      .text(centerX, titleY + 132, '[ START NEW SHIFT ]', {
         fontFamily: 'monospace',
         fontSize: '20px',
         color: '#f4cf6b',
