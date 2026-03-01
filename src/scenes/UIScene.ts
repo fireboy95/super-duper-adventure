@@ -444,6 +444,9 @@ export class UIScene extends Phaser.Scene {
     });
     this.launcherButton.setDepth(25);
 
+    this.controlsDrawerBackdrop.setDepth(22);
+    this.controlsDrawer.setDepth(24);
+
     const actions: Array<{ key: string; icon: string; label: string; color: number; onPress: () => void }> = [
       { key: 'feed-standard', icon: '🥣', label: 'FEED', color: 0x306a43, onPress: () => this.scene.get('CageScene').events.emit('action:feed') },
       { key: 'feed-sweet', icon: '🍬', label: 'TREAT', color: 0x6e3e8c, onPress: () => this.scene.get('CageScene').events.emit('action:feed-sweet') },
@@ -497,6 +500,7 @@ export class UIScene extends Phaser.Scene {
     if (this.isModalBlockingControls) return;
 
     this.isControlsDrawerOpen = true;
+    this.setLauncherLabel('CLOSE');
     this.controlsDrawer?.setVisible(true);
     this.controlsDrawerBackdrop?.setVisible(true);
     this.controlsDrawerBackdrop?.setInteractive();
@@ -506,16 +510,24 @@ export class UIScene extends Phaser.Scene {
   private closeControlsDrawer(): void {
     if (!this.isControlsDrawerOpen && !this.controlsDrawer?.visible) {
       this.controlsAreaHeight = 4;
+      this.setLauncherLabel('MENU');
       return;
     }
 
     this.isControlsDrawerOpen = false;
+    this.setLauncherLabel('MENU');
     this.controlsDrawerBackdrop?.disableInteractive();
     this.controlsDrawerBackdrop?.setVisible(false);
     this.controlsDrawer?.setVisible(false);
     this.refreshActionHierarchy();
   }
 
+
+  private setLauncherLabel(label: string): void {
+    if (!this.launcherButton) return;
+    const text = this.launcherButton.list[2] as Phaser.GameObjects.Text | undefined;
+    text?.setText(label);
+  }
 
   private toggleActionSubmenu(menu: TopMenuKey): void {
     this.activeMenu = this.activeMenu === menu ? null : menu;
