@@ -1,4 +1,4 @@
-import dialogs from '../data/dialogs.json';
+import dialogs from '../../archive/hamster-keeper-98/src/data/dialogs.json';
 import type { HamsterStats, SimulationState } from '../types/simulation';
 
 interface RawDialogOption {

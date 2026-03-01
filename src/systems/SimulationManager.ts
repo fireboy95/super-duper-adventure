@@ -1,4 +1,4 @@
-import defaults from '../data/stats.defaults.json';
+import defaults from '../../archive/hamster-keeper-98/src/data/stats.defaults.json';
 import type { DialogOptionEffects } from './DialogueSystem';
 import type { HamsterStats, PlayerActionType, SimulationState } from '../types/simulation';
 
