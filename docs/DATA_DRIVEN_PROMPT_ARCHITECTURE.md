@@ -50,17 +50,12 @@ See implementation in `src/game/prompt/PromptEngine.ts`.
 
 ## 3) Phaser adapter/UI layer
 
-`MainScene` reads snapshots from `PromptEngine` and renders:
+`MainScene` orchestrates prompt flow and delegates rendering to `PromptDialogueOverlay`:
 
-- Bottom-anchored dialogue panel
-- Portrait + speaker/expression
-- Tap-to-continue affordance
-- Stacked full-width choice cards
-- Decision pause dimmer during choice state
-- Dialogue log and notebook utility panels
-- Keyword chip interactions
+- `MainScene`: wires input intents to prompt runtime (`advance`, `selectChoice`, `inspectKeyword`)
+- `PromptDialogueOverlay`: renders bottom dialogue panel, portrait strip, choice cards, dimmer, and utility panels
 
-See integration in `src/scenes/MainScene.ts`.
+See integration in `src/scenes/MainScene.ts` and `src/game/ui/PromptDialogueOverlay.ts`.
 
 ## Prompt lifecycle
 
