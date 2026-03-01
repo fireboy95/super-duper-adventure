@@ -3,12 +3,13 @@ import { EventSystem } from '../systems/EventSystem';
 import type { DialogOptionEffects } from '../systems/DialogueSystem';
 import { SimulationManager } from '../systems/SimulationManager';
 import { SaveSystem } from '../systems/SaveSystem';
-import { SafeAreaInsets, UI_SAFE_AREA_EVENT } from './layoutContract';
+import { DEFAULT_SAFE_AREA_INSETS, InitialViewportState, SafeAreaInsets, UI_SAFE_AREA_EVENT } from './layoutContract';
 
 const AUTOSAVE_INTERVAL_MS = 10_000;
 const EVENT_HEARTBEAT_INTERVAL_MS = 3_000;
 const EVENT_HEARTBEAT_JITTER = 0.2;
 const EVENT_FAST_LANE_PRIORITY = 90;
+const SAFE_AREA_FALLBACK_DELAY_MS = 120;
 
 type HamsterAnimationKey = 'hamster-idle' | 'hamster-happy' | 'hamster-stress' | 'hamster-sleep' | 'hamster-eat';
 
@@ -32,14 +33,16 @@ export class CageScene extends Phaser.Scene {
   private grimeOverlay?: Phaser.GameObjects.Rectangle;
   private activeHamsterAnimation: HamsterAnimationKey = 'hamster-idle';
   private temporaryAnimationUntilMs = 0;
-  private safeAreaInsets: SafeAreaInsets = { topInset: 0, bottomInset: 0 };
+  private safeAreaInsets: SafeAreaInsets = { ...DEFAULT_SAFE_AREA_INSETS };
   private detachSafeAreaListener?: () => void;
+  private hasResolvedInitialLayout = false;
+  private safeAreaFallbackTimer?: Phaser.Time.TimerEvent;
 
   constructor() {
     super('CageScene');
   }
 
-  create(data?: { forceNewGame?: boolean }): void {
+  create(data?: { forceNewGame?: boolean; initialViewport?: InitialViewportState }): void {
     const shouldLoadSave = !data?.forceNewGame;
     const loadedState = shouldLoadSave ? this.saveSystem.load() : null;
     this.simulation = new SimulationManager(loadedState ?? undefined);
@@ -47,6 +50,12 @@ export class CageScene extends Phaser.Scene {
     this.hasTransitionedToEnding = false;
     this.lastEventAttemptMs = 0;
     this.nextEventAttemptDelayMs = this.rollEventAttemptDelayMs();
+
+    const initialViewport = data?.initialViewport;
+    this.safeAreaInsets = initialViewport?.safeAreaInsets ?? { ...DEFAULT_SAFE_AREA_INSETS };
+    this.hasResolvedInitialLayout = false;
+    this.safeAreaFallbackTimer?.remove(false);
+    this.safeAreaFallbackTimer = undefined;
 
     this.cameras.main.setBackgroundColor('#2a2f2a');
 
@@ -73,7 +82,10 @@ export class CageScene extends Phaser.Scene {
 
     this.bindSafeAreaLayoutContract();
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
-    this.layoutScene(this.scale.width, this.scale.height);
+
+    const initialWidth = initialViewport?.width ?? this.scale.width;
+    const initialHeight = initialViewport?.height ?? this.scale.height;
+    this.scheduleInitialLayout(initialWidth, initialHeight);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.saveCurrentState();
@@ -86,6 +98,8 @@ export class CageScene extends Phaser.Scene {
       this.events.off('action:clean', this.handleCleanAction, this);
       this.events.off('dialog:apply-effects', this.handleDialogEffects, this);
       this.detachSafeAreaListener?.();
+      this.safeAreaFallbackTimer?.remove(false);
+      this.safeAreaFallbackTimer = undefined;
     });
 
     this.refreshStatus();
@@ -389,19 +403,42 @@ export class CageScene extends Phaser.Scene {
   }
 
   private handleResize(gameSize: Phaser.Structs.Size): void {
+    if (!this.hasResolvedInitialLayout) return;
     this.layoutScene(gameSize.width, gameSize.height);
   }
 
   private bindSafeAreaLayoutContract(): void {
     const handleSafeArea = (safeAreaInsets: SafeAreaInsets): void => {
       this.safeAreaInsets = safeAreaInsets;
-      this.layoutScene(this.scale.width, this.scale.height);
+      this.resolveInitialLayout(this.scale.width, this.scale.height);
     };
 
     this.game.events.on(UI_SAFE_AREA_EVENT, handleSafeArea);
     this.detachSafeAreaListener = () => {
       this.game.events.off(UI_SAFE_AREA_EVENT, handleSafeArea);
     };
+  }
+
+  private scheduleInitialLayout(width: number, height: number): void {
+    this.safeAreaFallbackTimer?.remove(false);
+    this.safeAreaFallbackTimer = this.time.delayedCall(SAFE_AREA_FALLBACK_DELAY_MS, () => {
+      if (this.hasResolvedInitialLayout) return;
+      this.resolveInitialLayout(width, height, {
+        topInset: this.safeAreaInsets.topInset,
+        bottomInset: Math.max(this.safeAreaInsets.bottomInset, DEFAULT_SAFE_AREA_INSETS.bottomInset),
+      });
+    });
+  }
+
+  private resolveInitialLayout(width: number, height: number, safeAreaInsets?: SafeAreaInsets): void {
+    if (safeAreaInsets) {
+      this.safeAreaInsets = safeAreaInsets;
+    }
+
+    this.safeAreaFallbackTimer?.remove(false);
+    this.safeAreaFallbackTimer = undefined;
+    this.hasResolvedInitialLayout = true;
+    this.layoutScene(width, height);
   }
 
   private layoutScene(width: number, height: number): void {

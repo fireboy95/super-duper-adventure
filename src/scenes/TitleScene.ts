@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { SaveSystem } from '../systems/SaveSystem';
+import { DEFAULT_SAFE_AREA_INSETS, InitialViewportState } from './layoutContract';
 
 export class TitleScene extends Phaser.Scene {
   private saveSystem = new SaveSystem();
@@ -36,8 +37,13 @@ export class TitleScene extends Phaser.Scene {
     if (hasSave) {
       continueEntry.setInteractive({ useHandCursor: true });
       continueEntry.on('pointerdown', () => {
-        this.scene.start('CageScene');
-        this.scene.launch('UIScene');
+        const initialViewport: InitialViewportState = {
+          width: this.scale.width,
+          height: this.scale.height,
+          safeAreaInsets: { ...DEFAULT_SAFE_AREA_INSETS },
+        };
+        this.scene.start('CageScene', { initialViewport });
+        this.scene.launch('UIScene', { initialViewport });
       });
     }
 
@@ -52,8 +58,13 @@ export class TitleScene extends Phaser.Scene {
 
     newGame.on('pointerdown', () => {
       this.saveSystem.clear();
-      this.scene.start('CageScene', { forceNewGame: true });
-      this.scene.launch('UIScene');
+      const initialViewport: InitialViewportState = {
+        width: this.scale.width,
+        height: this.scale.height,
+        safeAreaInsets: { ...DEFAULT_SAFE_AREA_INSETS },
+      };
+      this.scene.start('CageScene', { forceNewGame: true, initialViewport });
+      this.scene.launch('UIScene', { initialViewport });
     });
   }
 }

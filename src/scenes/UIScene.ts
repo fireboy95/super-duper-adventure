@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { DialogEntry, DialogOption, DialogueSystem } from '../systems/DialogueSystem';
 import { DebugConsoleEntry, debugConsole } from '../systems/DebugConsole';
-import { SafeAreaInsets, UI_SAFE_AREA_EVENT } from './layoutContract';
+import { DEFAULT_SAFE_AREA_INSETS, InitialViewportState, SafeAreaInsets, UI_SAFE_AREA_EVENT } from './layoutContract';
 
 type TopMenuKey = 'feed' | 'care' | 'social';
 
@@ -58,12 +58,13 @@ export class UIScene extends Phaser.Scene {
   private pendingDialogs: DialogRequest[] = [];
   private hudBackground?: Phaser.GameObjects.Rectangle;
   private controlsAreaHeight = 0;
+  private safeAreaInsets: SafeAreaInsets = { ...DEFAULT_SAFE_AREA_INSETS };
 
   constructor() {
     super('UIScene');
   }
 
-  create(): void {
+  create(data?: { initialViewport?: InitialViewportState }): void {
     this.hudBackground = this.add.rectangle(320, 22, 640, 44, 0x1f1f1f, 0.9);
     this.hudText = this.add.text(16, 10, 'Hunger -- | Thirst -- | Energy -- | Health -- | Cleanliness -- | Mood --', {
       fontFamily: 'monospace',
@@ -93,7 +94,10 @@ export class UIScene extends Phaser.Scene {
 
     this.createTouchControls();
     this.createDialogModal();
-    this.layoutResponsiveUi(this.scale.width, this.scale.height);
+    const initialWidth = data?.initialViewport?.width ?? this.scale.width;
+    const initialHeight = data?.initialViewport?.height ?? this.scale.height;
+    this.safeAreaInsets = data?.initialViewport?.safeAreaInsets ?? { ...DEFAULT_SAFE_AREA_INSETS };
+    this.layoutResponsiveUi(initialWidth, initialHeight);
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
 
     this.createDebugOverlay();
@@ -782,11 +786,11 @@ export class UIScene extends Phaser.Scene {
 
     this.controlsAreaHeight = controlsAreaHeight;
     const hudHeight = isNarrow ? 68 : 52;
-    const safeAreaInsets: SafeAreaInsets = {
+    this.safeAreaInsets = {
       topInset: topPadding + hudHeight,
       bottomInset: controlsAreaHeight,
     };
-    this.game.events.emit(UI_SAFE_AREA_EVENT, safeAreaInsets);
+    this.game.events.emit(UI_SAFE_AREA_EVENT, this.safeAreaInsets);
 
     if (this.hudBackground) {
       this.hudBackground.setPosition(width / 2, topPadding + hudHeight / 2);
