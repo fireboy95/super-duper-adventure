@@ -13,6 +13,14 @@ export class AudioSystem {
     this.scene = scene;
   }
 
+  unlock(): void {
+    if (!this.scene.sound.locked) {
+      return;
+    }
+
+    this.scene.sound.unlock();
+  }
+
   playSfx(key: string, options?: PlaySfxOptions): boolean {
     if (!this.scene.cache.audio.exists(key)) {
       if (options?.warnOnMissing) {

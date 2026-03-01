@@ -59,10 +59,22 @@ export class MainScene extends Phaser.Scene {
     this.player = this.add.circle(400, 300, 20, 0x4caf50);
     this.cursors = this.input.keyboard?.createCursorKeys();
     this.audioSystem = new AudioSystem(this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
 
     this.input.on('pointerdown', this.handlePointerDown, this);
     this.input.on('pointermove', this.handlePointerMove, this);
     this.input.on('pointerup', this.handlePointerUp, this);
+    this.input.on('pointerupoutside', this.handlePointerUp, this);
+
+    this.input.keyboard?.on('keydown', this.handleKeyboardInteraction, this);
+  }
+
+  private shutdown(): void {
+    this.input.off('pointerdown', this.handlePointerDown, this);
+    this.input.off('pointermove', this.handlePointerMove, this);
+    this.input.off('pointerup', this.handlePointerUp, this);
+    this.input.off('pointerupoutside', this.handlePointerUp, this);
+    this.input.keyboard?.off('keydown', this.handleKeyboardInteraction, this);
   }
 
   update(_time: number, delta: number): void {
@@ -92,6 +104,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
+    this.audioSystem?.unlock();
     this.activePointerId = pointer.id;
     this.updatePointerMovement(pointer);
     this.syncUnifiedMovement();
@@ -128,6 +141,10 @@ export class MainScene extends Phaser.Scene {
 
     this.pointerMoveX = deltaX / distance;
     this.pointerMoveY = deltaY / distance;
+  }
+
+  private handleKeyboardInteraction(): void {
+    this.audioSystem?.unlock();
   }
 
   private syncKeyboardMovement(): void {
