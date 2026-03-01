@@ -18,6 +18,7 @@ export class LayeredIconMenu {
   private readonly scene: Phaser.Scene;
   private readonly rootNodes: LayeredMenuNode[];
   private readonly topBar: Phaser.GameObjects.Rectangle;
+  private readonly topBarOverlay: Phaser.GameObjects.Rectangle;
   private readonly titleText: Phaser.GameObjects.Text;
   private readonly crumbText: Phaser.GameObjects.Text;
   private readonly statusText: Phaser.GameObjects.Text;
@@ -25,8 +26,10 @@ export class LayeredIconMenu {
   private readonly toggleLabel: Phaser.GameObjects.Text;
   private readonly backButton: Phaser.GameObjects.Container;
 
-  private readonly dockTop = 116;
+  private readonly desktopBarHeight = 84;
+  private readonly compactBarHeight = 108;
   private readonly buttonHeight = 56;
+  private readonly compactButtonHeight = 50;
   private readonly buttonGap = 6;
 
   private activeButtons: MenuButton[] = [];
@@ -39,12 +42,20 @@ export class LayeredIconMenu {
     this.rootNodes = rootNodes;
     this.currentNodes = rootNodes;
 
-    this.topBar = scene.add.rectangle(0, 0, scene.scale.width, 84, 0x131a2d, 0.96).setOrigin(0, 0).setDepth(9);
+    this.topBar = scene.add
+      .rectangle(0, 0, scene.scale.width, this.getTopBarHeight(), 0x131a2d, 0.96)
+      .setOrigin(0, 0)
+      .setDepth(9);
+    this.topBarOverlay = scene.add
+      .rectangle(0, 0, scene.scale.width, this.getTopBarHeight(), 0x131a2d, 0.08)
+      .setOrigin(0, 0)
+      .setDepth(9.2)
+      .setVisible(false);
 
     this.titleText = scene.add
       .text(this.getDockSidePadding(), 10, 'Layered Icon Menu', {
         fontFamily: 'Arial, sans-serif',
-        fontSize: '24px',
+        fontSize: `${this.getTitleFontSize()}px`,
         color: '#ffffff',
       })
       .setOrigin(0, 0)
@@ -53,7 +64,7 @@ export class LayeredIconMenu {
     this.crumbText = scene.add
       .text(this.getDockSidePadding(), 40, 'Menu collapsed', {
         fontFamily: 'Arial, sans-serif',
-        fontSize: '14px',
+        fontSize: `${this.getStatusFontSize()}px`,
         color: '#7ee8fa',
       })
       .setOrigin(0, 0)
@@ -62,7 +73,7 @@ export class LayeredIconMenu {
     this.statusText = scene.add
       .text(this.getDockSidePadding(), 64, 'Open the menu to reveal categories.', {
         fontFamily: 'Arial, sans-serif',
-        fontSize: '14px',
+        fontSize: `${this.getStatusFontSize()}px`,
         color: '#ffd166',
       })
       .setOrigin(0, 0)
@@ -84,6 +95,7 @@ export class LayeredIconMenu {
     this.scene.game.events.off(Phaser.Core.Events.BLUR, this.handleFocusLost, this);
     this.clearActiveButtons();
     this.topBar.destroy();
+    this.topBarOverlay.destroy();
     this.titleText.destroy();
     this.crumbText.destroy();
     this.statusText.destroy();
@@ -92,15 +104,30 @@ export class LayeredIconMenu {
   }
 
   private handleResize(): void {
+    const barHeight = this.getTopBarHeight();
     const padding = this.getDockSidePadding();
-    this.topBar.setSize(this.scene.scale.width, 84);
-    this.titleText.setPosition(padding, 10);
-    this.crumbText.setPosition(padding, 40);
-    this.statusText.setPosition(padding, 64).setWordWrapWidth(this.scene.scale.width - padding * 2);
+    const statusFontSize = this.getStatusFontSize();
+    const titleFontSize = this.getTitleFontSize();
+    const compact = this.isCompactLayout();
+    const textStartX = compact ? padding : padding + this.getBackButtonWidth() + 10;
+    const textMaxWidth = this.scene.scale.width - textStartX - (padding + 52);
+
+    this.topBar.setSize(this.scene.scale.width, barHeight);
+    this.topBarOverlay.setSize(this.scene.scale.width, barHeight);
+    this.topBarOverlay.setVisible(this.isMenuExpanded);
+
+    this.titleText.setFontSize(titleFontSize).setPosition(textStartX, 10).setWordWrapWidth(textMaxWidth);
+    this.crumbText.setFontSize(statusFontSize).setPosition(textStartX, 10 + titleFontSize + 2).setWordWrapWidth(textMaxWidth);
+    this.statusText
+      .setFontSize(statusFontSize)
+      .setPosition(textStartX, 10 + titleFontSize + statusFontSize + 6)
+      .setWordWrapWidth(textMaxWidth)
+      .setMaxLines(compact ? 2 : 1);
 
     const toggleX = this.scene.scale.width - padding - 44;
     this.toggleButton.setPosition(toggleX, 18);
-    this.backButton.setPosition(padding, this.dockTop - 42);
+    this.backButton.setPosition(padding, 18);
+    this.backButton.setDepth(11);
 
     this.renderLayer(false);
   }
@@ -138,28 +165,30 @@ export class LayeredIconMenu {
     });
 
     this.toggleLabel.setText('✕');
+    this.topBarOverlay.setVisible(true);
     this.backButton.setVisible(this.path.length > 0);
     this.crumbText.setText(this.path.length === 0 ? 'Top Level' : this.path.map((node) => node.label).join(' / '));
   }
 
   private createMenuButton(node: LayeredMenuNode, position: Phaser.Math.Vector2): MenuButton {
     const buttonWidth = this.getButtonWidth();
+    const buttonHeight = this.getMenuButtonHeight();
     const container = this.scene.add.container(position.x, position.y).setDepth(8);
 
     const bg = this.scene.add
-      .rectangle(0, 0, buttonWidth, this.buttonHeight, node.color, 0.95)
+      .rectangle(0, 0, buttonWidth, buttonHeight, node.color, 0.95)
       .setStrokeStyle(2, 0xffffff, 0.3)
       .setOrigin(0, 0);
 
     const icon = this.scene.add
-      .text(14, this.buttonHeight / 2, node.icon, {
+      .text(14, buttonHeight / 2, node.icon, {
         fontFamily: 'Arial, sans-serif',
         fontSize: '24px',
       })
       .setOrigin(0, 0.5);
 
     const label = this.scene.add
-      .text(52, this.buttonHeight / 2, node.label, {
+      .text(52, buttonHeight / 2, node.label, {
         fontFamily: 'Arial, sans-serif',
         fontSize: '18px',
         color: '#f8fbff',
@@ -169,7 +198,7 @@ export class LayeredIconMenu {
       .setMaxLines(1);
 
     const hitArea = this.scene.add
-      .zone(0, 0, buttonWidth, this.buttonHeight)
+      .zone(0, 0, buttonWidth, buttonHeight)
       .setOrigin(0, 0)
       .setInteractive({ useHandCursor: true });
 
@@ -229,8 +258,8 @@ export class LayeredIconMenu {
 
   private createBackButton(): Phaser.GameObjects.Container {
     const x = this.getDockSidePadding();
-    const y = this.dockTop - 42;
-    const buttonWidth = this.getButtonWidth();
+    const y = 18;
+    const buttonWidth = this.getBackButtonWidth();
     const container = this.scene.add.container(x, y).setDepth(9);
 
     const bg = this.scene.add
@@ -302,6 +331,7 @@ export class LayeredIconMenu {
     this.path = [];
     this.currentNodes = this.rootNodes;
     this.isMenuExpanded = false;
+    this.topBarOverlay.setVisible(false);
     this.statusText.setText(statusMessage);
     this.renderLayer(true);
   }
@@ -317,8 +347,32 @@ export class LayeredIconMenu {
     const layerOffsetX = this.getLayerOffsetX();
     const maxX = this.scene.scale.width - sidePadding - buttonWidth;
     const x = Math.min(sidePadding + depth * layerOffsetX, maxX);
-    const y = this.dockTop + index * (this.buttonHeight + this.buttonGap);
+    const y = this.getDockTop() + index * (this.getMenuButtonHeight() + this.buttonGap);
     return new Phaser.Math.Vector2(x, y);
+  }
+
+  private getDockTop(): number {
+    return this.getTopBarHeight() + 8;
+  }
+
+  private getTopBarHeight(): number {
+    return this.isCompactLayout() ? this.compactBarHeight : this.desktopBarHeight;
+  }
+
+  private isCompactLayout(): boolean {
+    return this.scene.scale.width < 520;
+  }
+
+  private getMenuButtonHeight(): number {
+    return this.scene.scale.width < 420 ? this.compactButtonHeight : this.buttonHeight;
+  }
+
+  private getTitleFontSize(): number {
+    return this.scene.scale.width < 420 ? 18 : 24;
+  }
+
+  private getStatusFontSize(): number {
+    return this.scene.scale.width < 420 ? 12 : 14;
   }
 
   private getDockSidePadding(): number {
@@ -327,10 +381,15 @@ export class LayeredIconMenu {
 
   private getButtonWidth(): number {
     const sidePadding = this.getDockSidePadding();
-    return Math.min(206, Math.max(164, this.scene.scale.width - sidePadding * 2));
+    const maxWidth = this.scene.scale.width < 420 ? 188 : 206;
+    return Math.min(maxWidth, Math.max(148, this.scene.scale.width - sidePadding * 2));
   }
 
   private getLayerOffsetX(): number {
     return this.scene.scale.width < 420 ? 18 : 32;
+  }
+
+  private getBackButtonWidth(): number {
+    return Math.min(120, Math.max(96, this.scene.scale.width * 0.25));
   }
 }
