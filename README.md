@@ -30,3 +30,4 @@ The Vite config uses the GitHub Actions-provided repository name when available,
 ## Codex-oriented architecture docs
 
 - See `docs/CODEX_GAME_BUILD_GUIDE.md` for implementation rules, migration playbook, and project structure optimized for AI-assisted development.
+- See `docs/PHASER_MOBILE_WEB_BEST_PRACTICES.md` for a mobile-first Phaser web game best-practices guide.
