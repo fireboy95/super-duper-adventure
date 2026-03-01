@@ -5,6 +5,7 @@ const ROUTE_EVENT = 'ui:navigate';
 const DEBUG_TEXTURE_KEY = 'debug-pane-texture';
 const MAX_LOG_LINES = 120;
 const DEFAULT_COMMAND_PLACEHOLDER = 'Type JavaScript and press Enter';
+const DEBUG_SCROLL_FOCUS_SUPPRESSION_MS = 180;
 
 type ConsoleMethod = 'log' | 'info' | 'warn' | 'error' | 'debug';
 
@@ -38,6 +39,8 @@ export class UiScene extends Phaser.Scene {
   private dragStartY?: number;
   private dragStartOffset = 0;
   private isDraggingDebugPane = false;
+  private didDragDebugPane = false;
+  private suppressCommandFocusUntil = 0;
 
   private readonly originalConsole: Partial<Record<ConsoleMethod, (...args: unknown[]) => void>> = {};
   private originalWindowError?: OnErrorEventHandler | null;
@@ -165,6 +168,7 @@ export class UiScene extends Phaser.Scene {
         this.dragStartY = pointer.y;
         this.dragStartOffset = this.debugLogScrollOffset;
         this.isDraggingDebugPane = true;
+        this.didDragDebugPane = false;
       })
       .on(Phaser.Input.Events.GAMEOBJECT_POINTER_MOVE, (pointer: Phaser.Input.Pointer) => {
         this.handleDebugPaneDrag(pointer);
@@ -208,7 +212,7 @@ export class UiScene extends Phaser.Scene {
     this.debugCommandInputContainer
       .setSize(Math.max(220, width - 32), 42)
       .setInteractive({ useHandCursor: true })
-      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => this.focusHiddenCommandInput());
+      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => this.focusHiddenCommandInputIfAllowed());
 
     this.debugPaneContainer = this.add.container(width / 2, 28, [
       this.debugPaneBackground,
@@ -470,8 +474,20 @@ export class UiScene extends Phaser.Scene {
     this.executeCommandFromInput();
   };
 
+  private focusHiddenCommandInputIfAllowed(): void {
+    if (Date.now() < this.suppressCommandFocusUntil) {
+      return;
+    }
+
+    this.focusHiddenCommandInput();
+  }
+
   private focusHiddenCommandInput(): void {
     this.debugCommandHiddenInput?.focus();
+  }
+
+  private blurHiddenCommandInput(): void {
+    this.debugCommandHiddenInput?.blur();
   }
 
   private executeCommandFromInput(): void {
@@ -618,6 +634,10 @@ export class UiScene extends Phaser.Scene {
       return;
     }
 
+    if (!this.didDragDebugPane && Math.abs(pointer.y - this.dragStartY) >= 6) {
+      this.didDragDebugPane = true;
+    }
+
     const estimatedLineHeight = 18;
     const movedLines = Math.round((pointer.y - this.dragStartY) / estimatedLineHeight);
     this.setDebugLogScrollOffset(this.dragStartOffset + movedLines);
@@ -632,8 +652,14 @@ export class UiScene extends Phaser.Scene {
   };
 
   private readonly handleGlobalPointerUp = (): void => {
+    if (this.isDraggingDebugPane && this.didDragDebugPane) {
+      this.suppressCommandFocusUntil = Date.now() + DEBUG_SCROLL_FOCUS_SUPPRESSION_MS;
+      this.blurHiddenCommandInput();
+    }
+
     this.dragStartY = undefined;
     this.isDraggingDebugPane = false;
+    this.didDragDebugPane = false;
   };
 
   private readonly handleDebugPaneWheel = (
