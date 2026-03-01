@@ -367,3 +367,48 @@ A change is “done” when:
 - Performance remains within budget on target devices.
 - Asset loading works under deployed base path.
 - No legacy AMD runtime dependencies remain (if on ESM track).
+
+## 17) Data-driven prompt architecture (dialogue-first games)
+
+For story-heavy mobile games, treat dialogue prompts as structured content, not hard-coded scene strings.
+
+### Required prompt system layers
+
+- **Prompt content schema**: `PromptScript`, `PromptSceneNode`, `PromptPage`, `PromptChoice`, and optional keyword metadata.
+- **Prompt runtime/engine**: pure TypeScript class that resolves page progression, delayed choice reveals, conditional unlocks, and logs.
+- **Phaser UI adapter**: scene/UI code that renders snapshots from the runtime and sends interaction intents back (`advance`, `selectChoice`, `inspectKeyword`).
+
+### Design constraints
+
+- Prompt logic must be serializable and testable without Phaser.
+- Content should support **delayed choices**, **keyword-gated choices**, and **high-stakes confirmation metadata** (for hold-to-confirm or explicit confirm dialog).
+- UI should consume a `PromptSnapshot` to avoid scattering game-state knowledge across components.
+
+### Recommended content shape
+
+```ts
+type PromptScript = {
+  startSceneId: string;
+  scenes: PromptSceneNode[];
+};
+
+type PromptSceneNode = {
+  id: string;
+  speaker: string;
+  portrait: string;
+  expression: string;
+  pages: PromptPage[];
+  choices?: PromptChoice[];
+  autoAdvanceToSceneId?: string;
+};
+```
+
+### Prompt implementation checklist
+
+- Keep each page to 1–3 sentences for tap-through readability.
+- Enforce 2–4 visible choices for mobile ergonomics.
+- Provide tone/style metadata for choices (`kind`, `cautious`, `ominous`, etc.).
+- Keep a rolling dialogue log and notebook entries for interruption recovery.
+- Route high-stakes choices through confirm or hold-to-confirm affordances.
+
+---
