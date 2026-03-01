@@ -17,7 +17,7 @@ export class MainScene extends Phaser.Scene {
     this.layeredMenu = new LayeredIconMenu(this, this.buildMenuDefinition());
 
     this.add
-      .text(this.scale.width / 2, this.scale.height - 20, 'Tap icons to drill into nested actions. Use Back to return.', {
+      .text(this.scale.width / 2, this.scale.height - 20, 'Tap the top-right menu button to open categories, then use Back to return.', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '14px',
         color: '#9bb0d3',
