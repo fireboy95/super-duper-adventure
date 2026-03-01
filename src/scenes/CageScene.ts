@@ -3,6 +3,7 @@ import { EventSystem } from '../systems/EventSystem';
 import type { DialogOptionEffects } from '../systems/DialogueSystem';
 import { SimulationManager } from '../systems/SimulationManager';
 import { SaveSystem } from '../systems/SaveSystem';
+import { SafeAreaInsets, UI_SAFE_AREA_EVENT } from './layoutContract';
 
 const AUTOSAVE_INTERVAL_MS = 10_000;
 const EVENT_HEARTBEAT_INTERVAL_MS = 3_000;
@@ -31,6 +32,8 @@ export class CageScene extends Phaser.Scene {
   private grimeOverlay?: Phaser.GameObjects.Rectangle;
   private activeHamsterAnimation: HamsterAnimationKey = 'hamster-idle';
   private temporaryAnimationUntilMs = 0;
+  private safeAreaInsets: SafeAreaInsets = { topInset: 0, bottomInset: 0 };
+  private detachSafeAreaListener?: () => void;
 
   constructor() {
     super('CageScene');
@@ -68,6 +71,7 @@ export class CageScene extends Phaser.Scene {
     this.events.on('action:clean', this.handleCleanAction, this);
     this.events.on('dialog:apply-effects', this.handleDialogEffects, this);
 
+    this.bindSafeAreaLayoutContract();
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
     this.layoutScene(this.scale.width, this.scale.height);
 
@@ -81,6 +85,7 @@ export class CageScene extends Phaser.Scene {
       this.events.off('action:handle', this.handleHandleAction, this);
       this.events.off('action:clean', this.handleCleanAction, this);
       this.events.off('dialog:apply-effects', this.handleDialogEffects, this);
+      this.detachSafeAreaListener?.();
     });
 
     this.refreshStatus();
@@ -387,8 +392,24 @@ export class CageScene extends Phaser.Scene {
     this.layoutScene(gameSize.width, gameSize.height);
   }
 
+  private bindSafeAreaLayoutContract(): void {
+    const handleSafeArea = (safeAreaInsets: SafeAreaInsets): void => {
+      this.safeAreaInsets = safeAreaInsets;
+      this.layoutScene(this.scale.width, this.scale.height);
+    };
+
+    this.game.events.on(UI_SAFE_AREA_EVENT, handleSafeArea);
+    this.detachSafeAreaListener = () => {
+      this.game.events.off(UI_SAFE_AREA_EVENT, handleSafeArea);
+    };
+  }
+
   private layoutScene(width: number, height: number): void {
     const isNarrow = width < 720;
+    const { topInset, bottomInset } = this.safeAreaInsets;
+    const usableBottom = Math.max(topInset + 80, height - bottomInset);
+    const usableHeight = Math.max(120, usableBottom - topInset);
+    const centerY = topInset + usableHeight / 2;
 
     this.cageBackground?.setPosition(width / 2, height / 2);
     if (this.cageBackground) {
@@ -398,14 +419,14 @@ export class CageScene extends Phaser.Scene {
     this.timeOfDayOverlay?.setPosition(width / 2, height / 2).setSize(width, height);
     this.grimeOverlay?.setPosition(width / 2, height / 2).setSize(width, height);
     this.stressOverlay?.setPosition(width / 2, height / 2).setSize(width, height);
-    this.ambientGlow?.setPosition(width / 2, height / 2 - 25).setSize(Math.max(320, width * 0.82), Math.max(140, height * 0.36));
-    this.moodAura?.setPosition(width / 2, Math.min(height - (isNarrow ? 176 : 186), height * 0.62) + 10).setSize(Math.max(170, width * 0.32), 96);
-    this.hamster?.setPosition(width / 2, Math.min(height - (isNarrow ? 170 : 185), height * 0.62));
+    this.ambientGlow?.setPosition(width / 2, centerY - 25).setSize(Math.max(320, width * 0.82), Math.max(140, usableHeight * 0.36));
+    this.moodAura?.setPosition(width / 2, Math.min(usableBottom - (isNarrow ? 176 : 186), topInset + usableHeight * 0.62) + 10).setSize(Math.max(170, width * 0.32), 96);
+    this.hamster?.setPosition(width / 2, Math.min(usableBottom - (isNarrow ? 170 : 185), topInset + usableHeight * 0.62));
 
     this.cageLabel?.setPosition(20, 20).setFontSize(isNarrow ? '14px' : '16px');
 
     if (this.statusText) {
-      this.statusText.setPosition(20, Math.max(70, height - (isNarrow ? 250 : 140)));
+      this.statusText.setPosition(20, Math.max(topInset + 8, usableBottom - (isNarrow ? 250 : 140)));
       this.statusText.setFontSize(isNarrow ? '12px' : '14px');
       this.statusText.setWordWrapWidth(Math.max(230, width - 40));
       this.statusText.setAlpha(isNarrow ? 0.92 : 1);
