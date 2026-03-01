@@ -1,4 +1,4 @@
-import events from '../data/events.json';
+import events from '../../archive/hamster-keeper-98/src/data/events.json';
 import type { SimulationState } from '../types/simulation';
 
 export interface TriggeredEvent {

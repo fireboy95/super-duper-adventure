@@ -1,5 +1,5 @@
 import type { SimulationState } from '../types/simulation';
-import defaults from '../data/stats.defaults.json';
+import defaults from '../../archive/hamster-keeper-98/src/data/stats.defaults.json';
 
 const SAVE_KEY = 'hamster_keeper_save_v1';
 const CURRENT_SCHEMA_VERSION = (defaults as SimulationState).version;
