@@ -146,19 +146,19 @@ export class UiScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => this.toggleDebugPane());
 
-    this.debugPaneBackground = this.add.rectangle(0, 0, width, 0, 0x060708, 0.52).setOrigin(0.5, 0).setStrokeStyle(1, 0x7dc6ff, 0.45);
-    this.debugPaneTexture = this.add.tileSprite(0, 0, width, 0, DEBUG_TEXTURE_KEY).setOrigin(0.5, 0).setAlpha(0.28);
+    this.debugPaneBackground = this.add.rectangle(0, 0, width, 0, 0x060708, 0.64).setOrigin(0.5, 0).setStrokeStyle(1, 0x7dc6ff, 0.45);
+    this.debugPaneTexture = this.add.tileSprite(0, 0, width, 0, DEBUG_TEXTURE_KEY).setOrigin(0.5, 0).setAlpha(0.34);
     this.debugPaneInteractionShield = this.add.zone(0, 0, width, 0).setOrigin(0.5, 0);
     this.debugPaneInteractionShield
       .setInteractive()
-      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (pointer: Phaser.Input.Pointer) => {
-        pointer.event.stopPropagation();
+      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+        event.stopPropagation();
       })
-      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, (pointer: Phaser.Input.Pointer) => {
-        pointer.event.stopPropagation();
+      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+        event.stopPropagation();
       })
-      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_MOVE, (pointer: Phaser.Input.Pointer) => {
-        pointer.event.stopPropagation();
+      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_MOVE, (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+        event.stopPropagation();
       });
     this.debugPaneScrollHitArea = this.add.zone(0, 0, 0, 0).setOrigin(0, 0);
     this.debugPaneText = this.add
@@ -178,8 +178,8 @@ export class UiScene extends Phaser.Scene {
 
     this.debugPaneScrollHitArea
       .setInteractive()
-      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (pointer: Phaser.Input.Pointer) => {
-        pointer.event.stopPropagation();
+      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+        event.stopPropagation();
         this.dragStartY = pointer.y;
         this.dragStartOffset = this.debugLogScrollOffset;
         this.isDraggingDebugPane = true;
