@@ -31,14 +31,20 @@ jobs:
       - name: Materialize move-blip audio from Git LFS
         run: |
           git lfs version
-          # Pull the exact asset required at runtime for movement SFX.
-          git lfs pull --include="public/assets/audio/move-blip.wav" --exclude=""
+          # Pull all runtime assets required by the game.
+          git lfs pull --include="public/assets/**" --exclude=""
 
-          test -f public/assets/audio/move-blip.wav
-          if LC_ALL=C grep -aq "^version https://git-lfs.github.com/spec/v1" public/assets/audio/move-blip.wav; then
-            echo "ERROR: move-blip.wav is still an LFS pointer file after git lfs pull"
-            exit 1
-          fi
+      - name: Verify required assets are hydrated from Git LFS
+        run: |
+          mapfile -t assets < <(find public/assets -type f | sort)
+          test "${#assets[@]}" -gt 0
+
+          for asset in "${assets[@]}"; do
+            if LC_ALL=C grep -aq "^version https://git-lfs.github.com/spec/v1" "$asset"; then
+              echo "ERROR: $asset is still an LFS pointer file after git lfs pull"
+              exit 1
+            fi
+          done
 
       - name: Setup Node
         uses: actions/setup-node@v4
