@@ -1,168 +1,196 @@
 import Phaser from 'phaser';
 import { AudioSystem } from '../game/systems/AudioSystem';
+import { LayeredIconMenu, type LayeredMenuNode } from '../game/ui/LayeredIconMenu';
 
 export class MainScene extends Phaser.Scene {
-  private player?: Phaser.GameObjects.Arc;
-  private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private audioSystem?: AudioSystem;
-  private moveSoundCooldownMs = 0;
-  private moveX = 0;
-  private moveY = 0;
-  private keyboardMoveX = 0;
-  private keyboardMoveY = 0;
-  private pointerMoveX = 0;
-  private pointerMoveY = 0;
-  private activePointerId?: number;
+  private layeredMenu?: LayeredIconMenu;
 
   constructor() {
     super('main-scene');
   }
 
   create(): void {
-    this.cameras.main.setBackgroundColor('#1e1e2f');
-    const hasKeyboardInput = Boolean(this.input.keyboard?.enabled);
-    const movementInstruction = hasKeyboardInput
-      ? 'Use arrow keys to move the player.'
-      : 'Drag or use on-screen controls to move.';
-    const audioInstruction = hasKeyboardInput
-      ? 'Movement plays blip audio while holding arrow keys.'
-      : 'Movement plays blip audio while moving.';
+    this.cameras.main.setBackgroundColor('#1b1f30');
+
+    this.audioSystem = new AudioSystem(this);
+    this.layeredMenu = new LayeredIconMenu(this, this.buildMenuDefinition());
 
     this.add
-      .text(16, 16, 'Phaser Starter', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '28px',
-        color: '#ffffff',
-      })
-      .setDepth(1);
-
-    this.add
-      .text(16, 52, movementInstruction, {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '16px',
-        color: '#9ad1ff',
-      })
-      .setDepth(1);
-
-    this.add
-      .text(16, 74, audioInstruction, {
+      .text(this.scale.width / 2, this.scale.height - 20, 'Tap icons to drill into nested actions. Use Back to return.', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '14px',
-        color: '#ffd166',
+        color: '#9bb0d3',
       })
-      .setDepth(1);
+      .setOrigin(0.5)
+      .setDepth(2);
 
-    this.player = this.add.circle(400, 300, 20, 0x4caf50);
-    this.cursors = this.input.keyboard?.createCursorKeys();
-    this.audioSystem = new AudioSystem(this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
-
     this.input.on('pointerdown', this.handlePointerDown, this);
-    this.input.on('pointermove', this.handlePointerMove, this);
-    this.input.on('pointerup', this.handlePointerUp, this);
-    this.input.on('pointerupoutside', this.handlePointerUp, this);
-
-    this.input.keyboard?.on('keydown', this.handleKeyboardInteraction, this);
   }
 
   private shutdown(): void {
     this.input.off('pointerdown', this.handlePointerDown, this);
-    this.input.off('pointermove', this.handlePointerMove, this);
-    this.input.off('pointerup', this.handlePointerUp, this);
-    this.input.off('pointerupoutside', this.handlePointerUp, this);
-    this.input.keyboard?.off('keydown', this.handleKeyboardInteraction, this);
+    this.layeredMenu?.destroy();
+    this.layeredMenu = undefined;
   }
 
-  update(_time: number, delta: number): void {
-    if (!this.player) return;
-
-    this.syncKeyboardMovement();
-    this.syncUnifiedMovement();
-
-    const speed = 0.25 * delta;
-
-    const isMoving = this.moveX !== 0 || this.moveY !== 0;
-
-    this.player.x += this.moveX * speed;
-    this.player.y += this.moveY * speed;
-
-    this.moveSoundCooldownMs = Math.max(0, this.moveSoundCooldownMs - delta);
-    if (isMoving && this.moveSoundCooldownMs === 0) {
-      this.audioSystem?.playMoveBlip(0.035);
-      this.moveSoundCooldownMs = 120;
-    }
-
-    this.player.x = Phaser.Math.Clamp(this.player.x, 20, this.scale.width - 20);
-    this.player.y = Phaser.Math.Clamp(this.player.y, 20, this.scale.height - 20);
-  }
-
-  private handlePointerDown(pointer: Phaser.Input.Pointer): void {
-    this.audioSystem?.unlock();
-    this.activePointerId = pointer.id;
-    this.updatePointerMovement(pointer);
-    this.syncUnifiedMovement();
-  }
-
-  private handlePointerMove(pointer: Phaser.Input.Pointer): void {
-    if (this.activePointerId !== pointer.id) return;
-
-    this.updatePointerMovement(pointer);
-    this.syncUnifiedMovement();
-  }
-
-  private handlePointerUp(pointer: Phaser.Input.Pointer): void {
-    if (this.activePointerId !== pointer.id) return;
-
-    this.activePointerId = undefined;
-    this.pointerMoveX = 0;
-    this.pointerMoveY = 0;
-    this.syncUnifiedMovement();
-  }
-
-  private updatePointerMovement(pointer: Phaser.Input.Pointer): void {
-    if (!this.player) return;
-
-    const deltaX = pointer.worldX - this.player.x;
-    const deltaY = pointer.worldY - this.player.y;
-    const distance = Math.hypot(deltaX, deltaY);
-
-    if (distance < 8) {
-      this.pointerMoveX = 0;
-      this.pointerMoveY = 0;
-      return;
-    }
-
-    this.pointerMoveX = deltaX / distance;
-    this.pointerMoveY = deltaY / distance;
-  }
-
-  private handleKeyboardInteraction(): void {
+  private handlePointerDown(): void {
     this.audioSystem?.unlock();
   }
 
-  private syncKeyboardMovement(): void {
-    if (!this.cursors) {
-      this.keyboardMoveX = 0;
-      this.keyboardMoveY = 0;
-      return;
-    }
-
-    this.keyboardMoveX = Number(this.cursors.right.isDown) - Number(this.cursors.left.isDown);
-    this.keyboardMoveY = Number(this.cursors.down.isDown) - Number(this.cursors.up.isDown);
+  private buildMenuDefinition(): LayeredMenuNode[] {
+    return [
+      {
+        id: 'explore',
+        icon: '🧭',
+        label: 'Explore',
+        color: 0x457b9d,
+        children: [
+          {
+            id: 'map',
+            icon: '🗺️',
+            label: 'Map',
+            color: 0x3a86ff,
+            onSelect: () => this.playActionSound(),
+          },
+          {
+            id: 'quests',
+            icon: '📜',
+            label: 'Quests',
+            color: 0x4d908e,
+            children: [
+              {
+                id: 'main-quest',
+                icon: '⭐',
+                label: 'Main Path',
+                color: 0x577590,
+                onSelect: () => this.playActionSound(),
+              },
+              {
+                id: 'side-quest',
+                icon: '🧩',
+                label: 'Side Tasks',
+                color: 0x43aa8b,
+                onSelect: () => this.playActionSound(),
+              },
+            ],
+          },
+          {
+            id: 'fast-travel',
+            icon: '🚪',
+            label: 'Fast Travel',
+            color: 0x277da1,
+            onSelect: () => this.playActionSound(),
+          },
+        ],
+      },
+      {
+        id: 'build',
+        icon: '🛠️',
+        label: 'Build',
+        color: 0x9d4edd,
+        children: [
+          {
+            id: 'craft',
+            icon: '⚒️',
+            label: 'Craft',
+            color: 0x7b2cbf,
+            onSelect: () => this.playActionSound(),
+          },
+          {
+            id: 'upgrade',
+            icon: '⬆️',
+            label: 'Upgrade',
+            color: 0x5a189a,
+            onSelect: () => this.playActionSound(),
+          },
+          {
+            id: 'workshop',
+            icon: '🏗️',
+            label: 'Workshop',
+            color: 0x3c096c,
+            children: [
+              {
+                id: 'blueprints',
+                icon: '📐',
+                label: 'Blueprints',
+                color: 0x5f0f40,
+                onSelect: () => this.playActionSound(),
+              },
+              {
+                id: 'automation',
+                icon: '⚙️',
+                label: 'Automation',
+                color: 0x7b2cbf,
+                onSelect: () => this.playActionSound(),
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: 'social',
+        icon: '👥',
+        label: 'Social',
+        color: 0xff8fab,
+        children: [
+          {
+            id: 'friends',
+            icon: '🤝',
+            label: 'Friends',
+            color: 0xff6b6b,
+            onSelect: () => this.playActionSound(),
+          },
+          {
+            id: 'guild',
+            icon: '🛡️',
+            label: 'Guild',
+            color: 0xf06595,
+            onSelect: () => this.playActionSound(),
+          },
+          {
+            id: 'mail',
+            icon: '✉️',
+            label: 'Messages',
+            color: 0xe64980,
+            onSelect: () => this.playActionSound(),
+          },
+        ],
+      },
+      {
+        id: 'settings',
+        icon: '⚙️',
+        label: 'Settings',
+        color: 0xf4a261,
+        children: [
+          {
+            id: 'audio',
+            icon: '🔊',
+            label: 'Audio',
+            color: 0xe76f51,
+            onSelect: () => this.playActionSound(),
+          },
+          {
+            id: 'controls',
+            icon: '🎮',
+            label: 'Controls',
+            color: 0xf77f00,
+            onSelect: () => this.playActionSound(),
+          },
+          {
+            id: 'accessibility',
+            icon: '♿',
+            label: 'Accessibility',
+            color: 0xfc8c29,
+            onSelect: () => this.playActionSound(),
+          },
+        ],
+      },
+    ];
   }
 
-  private syncUnifiedMovement(): void {
-    const combinedX = this.keyboardMoveX + this.pointerMoveX;
-    const combinedY = this.keyboardMoveY + this.pointerMoveY;
-    const magnitude = Math.hypot(combinedX, combinedY);
-
-    if (magnitude > 0) {
-      this.moveX = combinedX / magnitude;
-      this.moveY = combinedY / magnitude;
-      return;
-    }
-
-    this.moveX = 0;
-    this.moveY = 0;
+  private playActionSound(): void {
+    this.audioSystem?.playMoveBlip(0.04);
   }
 }
