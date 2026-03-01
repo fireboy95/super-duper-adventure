@@ -20,7 +20,6 @@ export class UiScene extends Phaser.Scene {
   private debugPaneBackground?: Phaser.GameObjects.Rectangle;
   private debugPaneTexture?: Phaser.GameObjects.TileSprite;
   private debugPaneScrollHitArea?: Phaser.GameObjects.Zone;
-  private debugPaneScrollHitRect = new Phaser.Geom.Rectangle(0, 0, 0, 0);
   private debugPaneText?: Phaser.GameObjects.Text;
   private debugCommandInputContainer?: Phaser.GameObjects.Container;
   private debugCommandInputBackground?: Phaser.GameObjects.Rectangle;
@@ -157,7 +156,7 @@ export class UiScene extends Phaser.Scene {
       .setWordWrapWidth(Math.max(200, width - 48));
 
     this.debugPaneScrollHitArea
-      .setInteractive(this.debugPaneScrollHitRect, Phaser.Geom.Rectangle.Contains)
+      .setInteractive()
       .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (pointer: Phaser.Input.Pointer) => {
         this.dragStartY = pointer.y;
         this.dragStartOffset = this.debugLogScrollOffset;
@@ -362,7 +361,9 @@ export class UiScene extends Phaser.Scene {
     this.debugPaneScrollHitArea
       .setSize(textAreaWidth, textAreaHeight)
       .setPosition(-width / 2 + 12, 0);
-    this.debugPaneScrollHitRect.setTo(0, 0, textAreaWidth, textAreaHeight);
+    if (this.debugPaneScrollHitArea.input?.hitArea && 'setTo' in this.debugPaneScrollHitArea.input.hitArea) {
+      this.debugPaneScrollHitArea.input.hitArea.setTo(0, 0, textAreaWidth, textAreaHeight);
+    }
     this.debugPaneText
       .setWordWrapWidth(textAreaWidth, true)
       .setFixedSize(textAreaWidth, textAreaHeight)
@@ -506,6 +507,7 @@ export class UiScene extends Phaser.Scene {
       this.debugCommandHiddenInput.value = '';
     }
     this.refreshDebugCommandText();
+    this.focusHiddenCommandInput();
   }
 
   private refreshDebugCommandText(): void {
