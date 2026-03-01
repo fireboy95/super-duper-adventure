@@ -1,6 +1,6 @@
-# Hamster Keeper '98 (TypeScript Skeleton)
+# 2D Game Starter (TypeScript + Phaser 3)
 
-A TypeScript + Phaser 3 starter scaffold for the hamster care simulation described in the GDD.
+A clean Phaser 3 starter project ready for building a new 2D game.
 
 ## Scripts
 
@@ -11,13 +11,6 @@ A TypeScript + Phaser 3 starter scaffold for the hamster care simulation describ
 
 ## Current scope
 
-- Phaser scenes: Boot, Title, Cage, UI, Ending.
-- Type-safe simulation state model.
-- MVP simulation tick with sample hidden-rule behaviors.
-- JSON-backed event + dialog definitions.
-
-
-## Design documentation
-
-- Consolidated v1 GDD for ongoing AI/human development: `docs/GDD_V1.md`
-- Gap-based enhancement backlog: `docs/ENHANCEMENT_TASKS.md`
+- Minimal scene flow: `BootScene` -> `GameScene`.
+- Basic player movement with arrow keys.
+- Lightweight project structure for rapid iteration.

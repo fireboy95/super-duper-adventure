@@ -1,14 +1,10 @@
 import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene';
-import { CageScene } from './scenes/CageScene';
-import { EndingScene } from './scenes/EndingScene';
-import { TitleScene } from './scenes/TitleScene';
-import { UIScene } from './scenes/UIScene';
-import { debugConsole } from './systems/DebugConsole';
+import { GameScene } from './scenes/GameScene';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
-  backgroundColor: '#000000',
+  backgroundColor: '#101820',
   parent: 'game-container',
   scale: {
     mode: Phaser.Scale.FIT,
@@ -17,8 +13,7 @@ const config: Phaser.Types.Core.GameConfig = {
     height: 480,
   },
   pixelArt: true,
-  scene: [BootScene, TitleScene, CageScene, UIScene, EndingScene],
+  scene: [BootScene, GameScene],
 };
 
-debugConsole.install();
 new Phaser.Game(config);
