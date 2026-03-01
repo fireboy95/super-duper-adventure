@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
+import { AudioSystem } from '../game/systems/AudioSystem';
 
 export class MainScene extends Phaser.Scene {
   private player?: Phaser.GameObjects.Arc;
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
-  private moveBlip?: Phaser.Sound.BaseSound;
+  private audioSystem?: AudioSystem;
   private moveSoundCooldownMs = 0;
 
   constructor() {
@@ -43,7 +44,7 @@ export class MainScene extends Phaser.Scene {
 
     this.player = this.add.circle(400, 300, 20, 0x4caf50);
     this.cursors = this.input.keyboard?.createCursorKeys();
-    this.moveBlip = this.sound.add('move-blip', { volume: 0.3 });
+    this.audioSystem = new AudioSystem(this);
   }
 
   update(_time: number, delta: number): void {
@@ -63,8 +64,11 @@ export class MainScene extends Phaser.Scene {
     if (this.cursors.down.isDown) this.player.y += speed;
 
     this.moveSoundCooldownMs = Math.max(0, this.moveSoundCooldownMs - delta);
-    if (isMoving && this.moveBlip && this.moveSoundCooldownMs === 0) {
-      this.moveBlip.play();
+    if (isMoving && this.moveSoundCooldownMs === 0) {
+      this.audioSystem?.playSfx('move-blip', {
+        config: { volume: 0.3 },
+        warnOnMissing: true,
+      });
       this.moveSoundCooldownMs = 120;
     }
 
