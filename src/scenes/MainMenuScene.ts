@@ -1,12 +1,11 @@
 import Phaser from 'phaser';
 import { SaveSystem } from '../systems/SaveSystem';
-import { DEFAULT_SAFE_AREA_INSETS, InitialViewportState } from './layoutContract';
 
-export class TitleScene extends Phaser.Scene {
+export class MainMenuScene extends Phaser.Scene {
   private saveSystem = new SaveSystem();
 
   constructor() {
-    super('TitleScene');
+    super('MainMenuScene');
   }
 
   create(): void {
@@ -17,7 +16,7 @@ export class TitleScene extends Phaser.Scene {
     const titleY = Math.max(110, height * 0.28);
 
     this.add
-      .text(centerX, titleY, "HAMSTER KEEPER '98", {
+      .text(centerX, titleY, "ARCADE ADVENTURE", {
         fontFamily: 'monospace',
         fontSize: '28px',
         color: '#f0f0f0',
@@ -27,7 +26,7 @@ export class TitleScene extends Phaser.Scene {
     const hasSave = this.saveSystem.hasSave();
 
     const continueEntry = this.add
-      .text(centerX, titleY + 88, hasSave ? '[ CONTINUE ]' : '[ CONTINUE - NO SAVE ]', {
+      .text(centerX, titleY + 88, hasSave ? '[ CONTINUE ]' : '[ CONTINUE - UNAVAILABLE ]', {
         fontFamily: 'monospace',
         fontSize: '20px',
         color: hasSave ? '#00ff99' : '#666666',
@@ -37,13 +36,8 @@ export class TitleScene extends Phaser.Scene {
     if (hasSave) {
       continueEntry.setInteractive({ useHandCursor: true });
       continueEntry.on('pointerdown', () => {
-        const initialViewport: InitialViewportState = {
-          width: this.scale.width,
-          height: this.scale.height,
-          safeAreaInsets: { ...DEFAULT_SAFE_AREA_INSETS },
-        };
-        this.scene.start('CageScene', { initialViewport });
-        this.scene.launch('UIScene', { initialViewport });
+        this.scene.start('GameScene');
+        this.scene.launch('HudScene');
       });
     }
 
@@ -58,13 +52,8 @@ export class TitleScene extends Phaser.Scene {
 
     newGame.on('pointerdown', () => {
       this.saveSystem.clear();
-      const initialViewport: InitialViewportState = {
-        width: this.scale.width,
-        height: this.scale.height,
-        safeAreaInsets: { ...DEFAULT_SAFE_AREA_INSETS },
-      };
-      this.scene.start('CageScene', { forceNewGame: true, initialViewport });
-      this.scene.launch('UIScene', { initialViewport });
+      this.scene.start('GameScene');
+      this.scene.launch('HudScene');
     });
   }
 }

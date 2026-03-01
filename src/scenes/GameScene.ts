@@ -13,7 +13,7 @@ const SAFE_AREA_FALLBACK_DELAY_MS = 120;
 
 type HamsterAnimationKey = 'hamster-idle' | 'hamster-happy' | 'hamster-stress' | 'hamster-sleep' | 'hamster-eat';
 
-export class CageScene extends Phaser.Scene {
+export class GameScene extends Phaser.Scene {
   private simulation = new SimulationManager();
   private eventSystem = new EventSystem();
   private saveSystem = new SaveSystem();
@@ -41,7 +41,7 @@ export class CageScene extends Phaser.Scene {
   private safeAreaFallbackTimer?: Phaser.Time.TimerEvent;
 
   constructor() {
-    super('CageScene');
+    super('GameScene');
   }
 
   create(data?: { forceNewGame?: boolean; initialViewport?: InitialViewportState }): void {
@@ -153,8 +153,8 @@ export class CageScene extends Phaser.Scene {
     if (!this.hasTransitionedToEnding && endingId) {
       this.hasTransitionedToEnding = true;
       this.saveCurrentState();
-      this.scene.stop('UIScene');
-      this.scene.start('EndingScene', { endingId });
+      this.scene.stop('HudScene');
+      this.scene.start('GameOverScene', { endingId });
       return;
     }
 
