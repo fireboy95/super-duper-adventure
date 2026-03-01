@@ -27,6 +27,8 @@ export class UiScene extends Phaser.Scene {
 
   private debugCommandValue = '';
   private debugCommandHiddenInput?: HTMLInputElement;
+  private keyboardInset = 0;
+  private readonly keyboardInsetThreshold = 80;
 
   private isDebugPaneExpanded = false;
   private debugPaneHeight = 0;
@@ -46,6 +48,7 @@ export class UiScene extends Phaser.Scene {
     this.captureConsoleOutput();
 
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
+    this.bindViewportListeners();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
   }
 
@@ -61,6 +64,7 @@ export class UiScene extends Phaser.Scene {
   private shutdown(): void {
     this.restoreConsoleOutput();
     this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
+    this.unbindViewportListeners();
 
     this.layeredMenu?.destroy();
     this.layeredMenu = undefined;
@@ -193,7 +197,58 @@ export class UiScene extends Phaser.Scene {
   }
 
   private handleResize(): void {
+    this.refreshKeyboardInset();
     this.refreshDebugPaneLayout();
+  }
+
+  private bindViewportListeners(): void {
+    if (typeof window === 'undefined' || typeof window.visualViewport === 'undefined') {
+      return;
+    }
+
+    const viewport = window.visualViewport;
+    if (!viewport) {
+      return;
+    }
+
+    viewport.addEventListener('resize', this.handleViewportResize);
+    viewport.addEventListener('scroll', this.handleViewportResize);
+    this.refreshKeyboardInset();
+  }
+
+  private unbindViewportListeners(): void {
+    if (typeof window === 'undefined' || typeof window.visualViewport === 'undefined') {
+      return;
+    }
+
+    const viewport = window.visualViewport;
+    if (!viewport) {
+      return;
+    }
+
+    viewport.removeEventListener('resize', this.handleViewportResize);
+    viewport.removeEventListener('scroll', this.handleViewportResize);
+  }
+
+  private readonly handleViewportResize = (): void => {
+    this.refreshKeyboardInset();
+    this.refreshDebugPaneLayout();
+  };
+
+  private refreshKeyboardInset(): void {
+    if (typeof window === 'undefined') {
+      this.keyboardInset = 0;
+      return;
+    }
+
+    const viewport = window.visualViewport;
+    if (!viewport) {
+      this.keyboardInset = 0;
+      return;
+    }
+
+    const inset = Math.max(0, window.innerHeight - (viewport.height + viewport.offsetTop));
+    this.keyboardInset = inset >= this.keyboardInsetThreshold ? inset : 0;
   }
 
   private toggleDebugPane(): void {
@@ -241,7 +296,9 @@ export class UiScene extends Phaser.Scene {
     const { width } = this.scale;
 
     this.debugButtonContainer.setPosition(width / 2, 14);
-    this.debugPaneContainer.setPosition(width / 2, 28);
+    const upwardOffset = this.isDebugPaneExpanded ? Math.min(this.keyboardInset, this.debugPaneHeight * 0.5) : 0;
+
+    this.debugPaneContainer.setPosition(width / 2, 28 - upwardOffset);
 
     this.debugPaneBackground.setSize(width, this.debugPaneHeight);
     this.debugPaneTexture.setSize(width, this.debugPaneHeight);
