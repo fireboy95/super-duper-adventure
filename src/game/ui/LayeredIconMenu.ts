@@ -22,12 +22,9 @@ export class LayeredIconMenu {
   private readonly statusText: Phaser.GameObjects.Text;
   private readonly backButton: Phaser.GameObjects.Container;
 
-  private readonly dockSidePadding = 16;
   private readonly dockTop = 112;
-  private readonly buttonWidth = 206;
   private readonly buttonHeight = 56;
   private readonly buttonGap = 6;
-  private readonly layerOffsetX = 218;
 
   private activeButtons: MenuButton[] = [];
   private currentNodes: LayeredMenuNode[];
@@ -39,7 +36,7 @@ export class LayeredIconMenu {
     this.currentNodes = rootNodes;
 
     this.titleText = scene.add
-      .text(this.dockSidePadding, 18, 'Layered Icon Menu', {
+      .text(this.getDockSidePadding(), 18, 'Layered Icon Menu', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '30px',
         color: '#ffffff',
@@ -48,7 +45,7 @@ export class LayeredIconMenu {
       .setDepth(10);
 
     this.crumbText = scene.add
-      .text(this.dockSidePadding, 58, 'Top Level', {
+      .text(this.getDockSidePadding(), 58, 'Top Level', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',
         color: '#7ee8fa',
@@ -57,7 +54,7 @@ export class LayeredIconMenu {
       .setDepth(10);
 
     this.statusText = scene.add
-      .text(this.dockSidePadding, scene.scale.height - 20, 'Select a category icon to reveal actions.', {
+      .text(this.getDockSidePadding(), scene.scale.height - 20, 'Select a category icon to reveal actions.', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',
         color: '#ffd166',
@@ -66,15 +63,32 @@ export class LayeredIconMenu {
       .setDepth(10);
 
     this.backButton = this.createBackButton();
+    this.scene.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
+    this.handleResize();
     this.renderLayer(false);
   }
 
   destroy(): void {
+    this.scene.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
     this.clearActiveButtons();
     this.titleText.destroy();
     this.crumbText.destroy();
     this.statusText.destroy();
     this.backButton.destroy();
+  }
+
+  private handleResize(): void {
+    const padding = this.getDockSidePadding();
+    this.titleText.setPosition(padding, 18);
+    this.crumbText.setPosition(padding, 58);
+    this.statusText
+      .setPosition(padding, this.scene.scale.height - 20)
+      .setWordWrapWidth(this.scene.scale.width - padding * 2);
+    this.backButton.setPosition(padding, this.dockTop - 46);
+
+    if (this.activeButtons.length > 0) {
+      this.renderLayer(false);
+    }
   }
 
   private renderLayer(withAnimation: boolean): void {
@@ -107,10 +121,11 @@ export class LayeredIconMenu {
   }
 
   private createMenuButton(node: LayeredMenuNode, position: Phaser.Math.Vector2): MenuButton {
+    const buttonWidth = this.getButtonWidth();
     const container = this.scene.add.container(position.x, position.y).setDepth(8);
 
     const bg = this.scene.add
-      .rectangle(0, 0, this.buttonWidth, this.buttonHeight, node.color, 0.95)
+      .rectangle(0, 0, buttonWidth, this.buttonHeight, node.color, 0.95)
       .setStrokeStyle(2, 0xffffff, 0.3)
       .setOrigin(0, 0);
 
@@ -127,10 +142,12 @@ export class LayeredIconMenu {
         fontSize: '18px',
         color: '#f8fbff',
       })
-      .setOrigin(0, 0.5);
+      .setOrigin(0, 0.5)
+      .setWordWrapWidth(buttonWidth - 64)
+      .setMaxLines(1);
 
     const hitArea = this.scene.add
-      .zone(0, 0, this.buttonWidth, this.buttonHeight)
+      .zone(0, 0, buttonWidth, this.buttonHeight)
       .setOrigin(0, 0)
       .setInteractive({ useHandCursor: true });
 
@@ -165,12 +182,13 @@ export class LayeredIconMenu {
   }
 
   private createBackButton(): Phaser.GameObjects.Container {
-    const x = this.dockSidePadding;
+    const x = this.getDockSidePadding();
     const y = this.dockTop - 46;
+    const buttonWidth = this.getButtonWidth();
     const container = this.scene.add.container(x, y).setDepth(9);
 
     const bg = this.scene.add
-      .rectangle(0, 0, this.buttonWidth, 36, 0x2d3553, 0.95)
+      .rectangle(0, 0, buttonWidth, 36, 0x2d3553, 0.95)
       .setStrokeStyle(1, 0x86a8ff, 0.6)
       .setOrigin(0, 0);
     const label = this.scene.add
@@ -182,7 +200,7 @@ export class LayeredIconMenu {
       .setOrigin(0, 0.5);
 
     const hitArea = this.scene.add
-      .zone(0, 0, this.buttonWidth, 36)
+      .zone(0, 0, buttonWidth, 36)
       .setOrigin(0, 0)
       .setInteractive({ useHandCursor: true });
 
@@ -223,8 +241,25 @@ export class LayeredIconMenu {
   }
 
   private getDockedPosition(depth: number, index: number): Phaser.Math.Vector2 {
-    const x = this.dockSidePadding + depth * this.layerOffsetX;
+    const sidePadding = this.getDockSidePadding();
+    const buttonWidth = this.getButtonWidth();
+    const layerOffsetX = this.getLayerOffsetX();
+    const maxX = this.scene.scale.width - sidePadding - buttonWidth;
+    const x = Math.min(sidePadding + depth * layerOffsetX, maxX);
     const y = this.dockTop + index * (this.buttonHeight + this.buttonGap);
     return new Phaser.Math.Vector2(x, y);
+  }
+
+  private getDockSidePadding(): number {
+    return this.scene.scale.width < 420 ? 10 : 16;
+  }
+
+  private getButtonWidth(): number {
+    const sidePadding = this.getDockSidePadding();
+    return Math.min(206, Math.max(164, this.scene.scale.width - sidePadding * 2));
+  }
+
+  private getLayerOffsetX(): number {
+    return this.scene.scale.width < 420 ? 18 : 32;
   }
 }
