@@ -19,6 +19,7 @@ export class LayeredIconMenu {
   private readonly rootNodes: LayeredMenuNode[];
   private readonly topBar: Phaser.GameObjects.Rectangle;
   private readonly topBarOverlay: Phaser.GameObjects.Rectangle;
+  private readonly dismissZone: Phaser.GameObjects.Zone;
   private readonly titleText: Phaser.GameObjects.Text;
   private readonly crumbText: Phaser.GameObjects.Text;
   private readonly statusText: Phaser.GameObjects.Text;
@@ -41,6 +42,14 @@ export class LayeredIconMenu {
     this.scene = scene;
     this.rootNodes = rootNodes;
     this.currentNodes = rootNodes;
+
+    this.dismissZone = scene.add
+      .zone(0, 0, scene.scale.width, scene.scale.height)
+      .setOrigin(0, 0)
+      .setDepth(7)
+      .setInteractive({ useHandCursor: false })
+      .setVisible(false);
+    this.dismissZone.on('pointerdown', () => this.resetToDefaultState('Menu collapsed.'));
 
     this.topBar = scene.add
       .rectangle(0, 0, scene.scale.width, this.getTopBarHeight(), 0x131a2d, 0.96)
@@ -94,6 +103,7 @@ export class LayeredIconMenu {
     this.scene.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
     this.scene.game.events.off(Phaser.Core.Events.BLUR, this.handleFocusLost, this);
     this.clearActiveButtons();
+    this.dismissZone.destroy();
     this.topBar.destroy();
     this.topBarOverlay.destroy();
     this.titleText.destroy();
@@ -112,6 +122,7 @@ export class LayeredIconMenu {
     const textStartX = compact ? padding : padding + this.getBackButtonWidth() + 10;
     const textMaxWidth = this.scene.scale.width - textStartX - (padding + 52);
 
+    this.dismissZone.setSize(this.scene.scale.width, this.scene.scale.height);
     this.topBar.setSize(this.scene.scale.width, barHeight);
     this.topBarOverlay.setSize(this.scene.scale.width, barHeight);
     this.topBarOverlay.setVisible(this.isMenuExpanded);
@@ -139,6 +150,7 @@ export class LayeredIconMenu {
       this.backButton.setVisible(false);
       this.toggleLabel.setText('☰');
       this.crumbText.setText('Menu collapsed');
+      this.dismissZone.disableInteractive().setVisible(false);
       return;
     }
 
@@ -152,7 +164,7 @@ export class LayeredIconMenu {
         return;
       }
 
-      button.container.setPosition(position.x - 20, position.y);
+      button.container.setPosition(position.x + 20, position.y);
       button.container.setAlpha(0);
       this.scene.tweens.add({
         targets: button.container,
@@ -168,6 +180,7 @@ export class LayeredIconMenu {
     this.topBarOverlay.setVisible(true);
     this.backButton.setVisible(this.path.length > 0);
     this.crumbText.setText(this.path.length === 0 ? 'Top Level' : this.path.map((node) => node.label).join(' / '));
+    this.dismissZone.setVisible(true).setInteractive({ useHandCursor: false });
   }
 
   private createMenuButton(node: LayeredMenuNode, position: Phaser.Math.Vector2): MenuButton {
@@ -205,7 +218,7 @@ export class LayeredIconMenu {
     hitArea.on('pointerover', () => {
       this.scene.tweens.add({
         targets: container,
-        x: position.x + 4,
+        x: position.x - 4,
         duration: 100,
       });
     });
@@ -309,6 +322,7 @@ export class LayeredIconMenu {
 
     node.onSelect?.();
     this.statusText.setText(`Action triggered: ${node.label}`);
+    this.resetToDefaultState(`Navigated to ${node.label}.`);
   }
 
   private goBack(): void {
@@ -333,7 +347,7 @@ export class LayeredIconMenu {
     this.isMenuExpanded = false;
     this.topBarOverlay.setVisible(false);
     this.statusText.setText(statusMessage);
-    this.renderLayer(true);
+    this.renderLayer(false);
   }
 
   private clearActiveButtons(): void {
@@ -345,8 +359,10 @@ export class LayeredIconMenu {
     const sidePadding = this.getDockSidePadding();
     const buttonWidth = this.getButtonWidth();
     const layerOffsetX = this.getLayerOffsetX();
+    const anchorRightEdge = this.toggleButton.x + 44;
+    const minX = sidePadding;
     const maxX = this.scene.scale.width - sidePadding - buttonWidth;
-    const x = Math.min(sidePadding + depth * layerOffsetX, maxX);
+    const x = Phaser.Math.Clamp(anchorRightEdge - buttonWidth - depth * layerOffsetX, minX, maxX);
     const y = this.getDockTop() + index * (this.getMenuButtonHeight() + this.buttonGap);
     return new Phaser.Math.Vector2(x, y);
   }
@@ -386,7 +402,7 @@ export class LayeredIconMenu {
   }
 
   private getLayerOffsetX(): number {
-    return this.scene.scale.width < 420 ? 18 : 32;
+    return this.scene.scale.width < 420 ? 18 : 24;
   }
 
   private getBackButtonWidth(): number {
