@@ -18,10 +18,6 @@ export class MainScene extends Phaser.Scene {
     super('main-scene');
   }
 
-  preload(): void {
-    this.load.audio('move-blip', 'assets/audio/move-blip.wav');
-  }
-
   create(): void {
     this.cameras.main.setBackgroundColor('#1e1e2f');
     const hasKeyboardInput = Boolean(this.input.keyboard?.enabled);
@@ -92,10 +88,7 @@ export class MainScene extends Phaser.Scene {
 
     this.moveSoundCooldownMs = Math.max(0, this.moveSoundCooldownMs - delta);
     if (isMoving && this.moveSoundCooldownMs === 0) {
-      this.audioSystem?.playSfx('move-blip', {
-        config: { volume: 0.3 },
-        warnOnMissing: true,
-      });
+      this.audioSystem?.playMoveBlip(0.035);
       this.moveSoundCooldownMs = 120;
     }
 
