@@ -26,3 +26,7 @@ This repo includes a GitHub Actions workflow at `.github/workflows/deploy-pages.
 3. deploys `dist/` to GitHub Pages.
 
 The Vite config uses the GitHub Actions-provided repository name when available, so Pages URLs resolve correctly for project sites.
+
+## Codex-oriented architecture docs
+
+- See `docs/CODEX_GAME_BUILD_GUIDE.md` for implementation rules, migration playbook, and project structure optimized for AI-assisted development.
