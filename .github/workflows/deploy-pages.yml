@@ -31,8 +31,7 @@ jobs:
       - name: Ensure LFS objects are present
         run: |
           git lfs version
-          git lfs fetch --all
-          git lfs checkout
+          git lfs pull
 
       - name: Setup Node
         uses: actions/setup-node@v4
