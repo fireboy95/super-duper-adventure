@@ -28,14 +28,20 @@ jobs:
           lfs: false
           fetch-depth: 0
 
-      - name: Ensure LFS objects needed for build are present
-        env:
-          GIT_LFS_SKIP_DOWNLOAD_ERRORS: 1
+      - name: Ensure required LFS audio is present for build
         run: |
           git lfs version
-          # Avoid failing the workflow when historical/missing remote LFS objects exist.
-          # We only need objects required by the checked-out commit, excluding known-missing legacy audio.
-          git lfs pull --exclude="public/assets/audio/move-blip.wav"
+          # Pull the exact asset required at runtime for movement SFX.
+          git lfs pull --include="public/assets/audio/move-blip.wav" --exclude=""
+
+      - name: Validate move-blip is materialized (not an LFS pointer)
+        run: |
+          test -f public/assets/audio/move-blip.wav
+          first_line=$(head -n 1 public/assets/audio/move-blip.wav)
+          if [ "$first_line" = "version https://git-lfs.github.com/spec/v1" ]; then
+            echo "ERROR: move-blip.wav is still an LFS pointer file"
+            exit 1
+          fi
 
       - name: Setup Node
         uses: actions/setup-node@v4
