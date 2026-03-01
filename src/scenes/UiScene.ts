@@ -19,6 +19,7 @@ export class UiScene extends Phaser.Scene {
   private debugPaneContainer?: Phaser.GameObjects.Container;
   private debugPaneBackground?: Phaser.GameObjects.Rectangle;
   private debugPaneTexture?: Phaser.GameObjects.TileSprite;
+  private debugPaneScrollHitArea?: Phaser.GameObjects.Zone;
   private debugPaneText?: Phaser.GameObjects.Text;
   private debugCommandInputContainer?: Phaser.GameObjects.Container;
   private debugCommandInputBackground?: Phaser.GameObjects.Rectangle;
@@ -33,6 +34,9 @@ export class UiScene extends Phaser.Scene {
   private isDebugPaneExpanded = false;
   private debugPaneHeight = 0;
   private readonly debugLogLines: string[] = [];
+  private debugLogScrollOffset = 0;
+  private dragStartY?: number;
+  private dragStartOffset = 0;
 
   private readonly originalConsole: Partial<Record<ConsoleMethod, (...args: unknown[]) => void>> = {};
   private originalWindowError?: OnErrorEventHandler | null;
@@ -65,6 +69,8 @@ export class UiScene extends Phaser.Scene {
     this.restoreConsoleOutput();
     this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
     this.unbindViewportListeners();
+    this.input.off(Phaser.Input.Events.POINTER_WHEEL, this.handleDebugPaneWheel, this);
+    this.input.off(Phaser.Input.Events.POINTER_UP, this.handleGlobalPointerUp, this);
 
     this.layeredMenu?.destroy();
     this.layeredMenu = undefined;
@@ -73,6 +79,7 @@ export class UiScene extends Phaser.Scene {
     this.debugButtonContainer = undefined;
     this.debugPaneContainer?.destroy();
     this.debugPaneContainer = undefined;
+    this.debugPaneScrollHitArea = undefined;
     this.debugCommandInputContainer = undefined;
     this.debugCommandInputBackground = undefined;
     this.debugCommandInputText = undefined;
@@ -110,6 +117,7 @@ export class UiScene extends Phaser.Scene {
 
     this.debugPaneBackground = this.add.rectangle(0, 0, width, 0, 0x060708, 0.52).setOrigin(0.5, 0).setStrokeStyle(1, 0x7dc6ff, 0.45);
     this.debugPaneTexture = this.add.tileSprite(0, 0, width, 0, DEBUG_TEXTURE_KEY).setOrigin(0.5, 0).setAlpha(0.28);
+    this.debugPaneScrollHitArea = this.add.zone(0, 0, 0, 0).setOrigin(0, 0);
     this.debugPaneText = this.add
       .text(0, 0, '', {
         fontFamily: 'monospace',
@@ -124,6 +132,22 @@ export class UiScene extends Phaser.Scene {
       .setOrigin(0, 0)
       .setPadding(14, 18, 14, 14)
       .setWordWrapWidth(Math.max(200, width - 48));
+
+    this.debugPaneScrollHitArea
+      .setInteractive({ useHandCursor: true })
+      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (pointer: Phaser.Input.Pointer) => {
+        this.dragStartY = pointer.y;
+        this.dragStartOffset = this.debugLogScrollOffset;
+      })
+      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_MOVE, (pointer: Phaser.Input.Pointer) => {
+        if (!pointer.isDown || this.dragStartY === undefined) {
+          return;
+        }
+
+        const estimatedLineHeight = 18;
+        const movedLines = Math.round((this.dragStartY - pointer.y) / estimatedLineHeight);
+        this.setDebugLogScrollOffset(this.dragStartOffset + movedLines);
+      });
 
     this.debugCommandInputBackground = this.add
       .rectangle(0, 0, Math.max(220, width - 32), 42, 0x0e2038, 0.88)
@@ -168,12 +192,15 @@ export class UiScene extends Phaser.Scene {
     this.debugPaneContainer = this.add.container(width / 2, 28, [
       this.debugPaneBackground,
       this.debugPaneTexture,
+      this.debugPaneScrollHitArea,
       this.debugPaneText,
       this.debugCommandInputContainer,
     ]);
     this.debugPaneContainer.setDepth(1000).setScrollFactor(0).setVisible(false);
     this.refreshDebugPaneLayout();
     this.setupHiddenCommandInput();
+    this.input.on(Phaser.Input.Events.POINTER_WHEEL, this.handleDebugPaneWheel, this);
+    this.input.on(Phaser.Input.Events.POINTER_UP, this.handleGlobalPointerUp, this);
     this.refreshDebugCommandText();
   }
 
@@ -288,6 +315,7 @@ export class UiScene extends Phaser.Scene {
       !this.debugPaneContainer ||
       !this.debugPaneBackground ||
       !this.debugPaneTexture ||
+      !this.debugPaneScrollHitArea ||
       !this.debugPaneText ||
       !this.debugCommandInputContainer ||
       !this.debugCommandInputBackground ||
@@ -308,6 +336,9 @@ export class UiScene extends Phaser.Scene {
     this.debugPaneTexture.setSize(width, this.debugPaneHeight);
     const textAreaWidth = Math.max(200, width - 48);
     const textAreaHeight = Math.max(0, this.debugPaneHeight - 68);
+    this.debugPaneScrollHitArea
+      .setSize(textAreaWidth, textAreaHeight)
+      .setPosition(-width / 2 + 12, 0);
     this.debugPaneText
       .setWordWrapWidth(textAreaWidth, true)
       .setFixedSize(textAreaWidth, textAreaHeight)
@@ -511,9 +542,17 @@ export class UiScene extends Phaser.Scene {
   }
 
   private appendLog(line: string): void {
+    const shouldStickToBottom = this.debugLogScrollOffset >= this.getMaxDebugLogOffset() - 1;
+
     this.debugLogLines.push(line);
     if (this.debugLogLines.length > MAX_LOG_LINES) {
       this.debugLogLines.splice(0, this.debugLogLines.length - MAX_LOG_LINES);
+    }
+
+    if (shouldStickToBottom) {
+      this.debugLogScrollOffset = this.getMaxDebugLogOffset();
+    } else {
+      this.debugLogScrollOffset = Math.min(this.debugLogScrollOffset, this.getMaxDebugLogOffset());
     }
 
     this.refreshDebugText();
@@ -524,12 +563,58 @@ export class UiScene extends Phaser.Scene {
       return;
     }
 
-    const availableLogAreaHeight = Math.max(0, this.debugPaneHeight - 68);
-    const estimatedLineHeight = 18;
-    const visibleLineCount = Math.max(1, Math.floor(availableLogAreaHeight / estimatedLineHeight));
-    const visibleLines = this.debugLogLines.slice(-visibleLineCount);
+    const visibleLineCount = this.getVisibleDebugLineCount();
+    const maxOffset = this.getMaxDebugLogOffset(visibleLineCount);
+    this.debugLogScrollOffset = Phaser.Math.Clamp(this.debugLogScrollOffset, 0, maxOffset);
+    const visibleLines = this.debugLogLines.slice(this.debugLogScrollOffset, this.debugLogScrollOffset + visibleLineCount);
 
     this.debugPaneText.setText(visibleLines.join('\n'));
+  }
+
+
+  private readonly handleGlobalPointerUp = (): void => {
+    this.dragStartY = undefined;
+  };
+
+  private readonly handleDebugPaneWheel = (
+    pointer: Phaser.Input.Pointer,
+    currentlyOver: Phaser.GameObjects.GameObject[],
+    deltaX: number,
+    deltaY: number,
+  ): void => {
+    void pointer;
+    void deltaX;
+
+    if (!this.isDebugPaneExpanded || !this.debugPaneScrollHitArea || currentlyOver.length === 0) {
+      return;
+    }
+
+    if (!currentlyOver.includes(this.debugPaneScrollHitArea)) {
+      return;
+    }
+
+    const lineStep = deltaY === 0 ? 0 : Math.sign(deltaY) * Math.max(1, Math.round(Math.abs(deltaY) / 36));
+    this.setDebugLogScrollOffset(this.debugLogScrollOffset + lineStep);
+  };
+
+  private setDebugLogScrollOffset(nextOffset: number): void {
+    const clampedOffset = Phaser.Math.Clamp(nextOffset, 0, this.getMaxDebugLogOffset());
+    if (clampedOffset === this.debugLogScrollOffset) {
+      return;
+    }
+
+    this.debugLogScrollOffset = clampedOffset;
+    this.refreshDebugText();
+  }
+
+  private getVisibleDebugLineCount(): number {
+    const availableLogAreaHeight = Math.max(0, this.debugPaneHeight - 68);
+    const estimatedLineHeight = 18;
+    return Math.max(1, Math.floor(availableLogAreaHeight / estimatedLineHeight));
+  }
+
+  private getMaxDebugLogOffset(visibleLineCount = this.getVisibleDebugLineCount()): number {
+    return Math.max(0, this.debugLogLines.length - visibleLineCount);
   }
 
   private formatConsoleArgs(args: unknown[]): string {
@@ -611,5 +696,4 @@ export class UiScene extends Phaser.Scene {
     this.game.events.emit(ROUTE_EVENT, sceneKey);
   }
 }
-
 export { ROUTE_EVENT };
