@@ -3,9 +3,15 @@ import Phaser from 'phaser';
 export class MainScene extends Phaser.Scene {
   private player?: Phaser.GameObjects.Arc;
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
+  private moveBlip?: Phaser.Sound.BaseSound;
+  private moveSoundCooldownMs = 0;
 
   constructor() {
     super('main-scene');
+  }
+
+  preload(): void {
+    this.load.audio('move-blip', 'assets/audio/move-blip.wav');
   }
 
   create(): void {
@@ -27,8 +33,17 @@ export class MainScene extends Phaser.Scene {
       })
       .setDepth(1);
 
+    this.add
+      .text(16, 74, 'Audio smoke test: hold any arrow key for blips.', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '14px',
+        color: '#ffd166',
+      })
+      .setDepth(1);
+
     this.player = this.add.circle(400, 300, 20, 0x4caf50);
     this.cursors = this.input.keyboard?.createCursorKeys();
+    this.moveBlip = this.sound.add('move-blip', { volume: 0.3 });
   }
 
   update(_time: number, delta: number): void {
@@ -36,10 +51,22 @@ export class MainScene extends Phaser.Scene {
 
     const speed = 0.25 * delta;
 
+    const isMoving =
+      this.cursors.left.isDown ||
+      this.cursors.right.isDown ||
+      this.cursors.up.isDown ||
+      this.cursors.down.isDown;
+
     if (this.cursors.left.isDown) this.player.x -= speed;
     if (this.cursors.right.isDown) this.player.x += speed;
     if (this.cursors.up.isDown) this.player.y -= speed;
     if (this.cursors.down.isDown) this.player.y += speed;
+
+    this.moveSoundCooldownMs = Math.max(0, this.moveSoundCooldownMs - delta);
+    if (isMoving && this.moveBlip && this.moveSoundCooldownMs === 0) {
+      this.moveBlip.play();
+      this.moveSoundCooldownMs = 120;
+    }
 
     this.player.x = Phaser.Math.Clamp(this.player.x, 20, this.scale.width - 20);
     this.player.y = Phaser.Math.Clamp(this.player.y, 20, this.scale.height - 20);
