@@ -635,7 +635,7 @@ export class UIScene extends Phaser.Scene {
 
     background.setSize(width, height);
     const hitArea = background.input?.hitArea as Phaser.Geom.Rectangle | undefined;
-    hitArea?.setSize(width, height);
+    hitArea?.setTo(-width / 2, -height / 2, width, height);
   }
 
   private handleResize(gameSize: Phaser.Structs.Size): void {
