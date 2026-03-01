@@ -37,6 +37,7 @@ export class UiScene extends Phaser.Scene {
   private debugLogScrollOffset = 0;
   private dragStartY?: number;
   private dragStartOffset = 0;
+  private isDraggingDebugPane = false;
 
   private readonly originalConsole: Partial<Record<ConsoleMethod, (...args: unknown[]) => void>> = {};
   private originalWindowError?: OnErrorEventHandler | null;
@@ -74,6 +75,7 @@ export class UiScene extends Phaser.Scene {
       this.debugCommandInputText = undefined;
       this.debugCommandSubmitButton = undefined;
       this.input.off(Phaser.Input.Events.POINTER_WHEEL, this.handleDebugPaneWheel, this);
+      this.input.off(Phaser.Input.Events.POINTER_MOVE, this.handleGlobalPointerMove, this);
       this.input.off(Phaser.Input.Events.POINTER_UP, this.handleGlobalPointerUp, this);
     }
   }
@@ -92,6 +94,7 @@ export class UiScene extends Phaser.Scene {
     this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
     this.unbindViewportListeners();
     this.input.off(Phaser.Input.Events.POINTER_WHEEL, this.handleDebugPaneWheel, this);
+    this.input.off(Phaser.Input.Events.POINTER_MOVE, this.handleGlobalPointerMove, this);
     this.input.off(Phaser.Input.Events.POINTER_UP, this.handleGlobalPointerUp, this);
 
     this.layeredMenu?.destroy();
@@ -158,17 +161,13 @@ export class UiScene extends Phaser.Scene {
     this.debugPaneScrollHitArea
       .setInteractive()
       .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (pointer: Phaser.Input.Pointer) => {
+        pointer.event.stopPropagation();
         this.dragStartY = pointer.y;
         this.dragStartOffset = this.debugLogScrollOffset;
+        this.isDraggingDebugPane = true;
       })
       .on(Phaser.Input.Events.GAMEOBJECT_POINTER_MOVE, (pointer: Phaser.Input.Pointer) => {
-        if (!pointer.isDown || this.dragStartY === undefined) {
-          return;
-        }
-
-        const estimatedLineHeight = 18;
-        const movedLines = Math.round((this.dragStartY - pointer.y) / estimatedLineHeight);
-        this.setDebugLogScrollOffset(this.dragStartOffset + movedLines);
+        this.handleDebugPaneDrag(pointer);
       });
 
     this.debugCommandInputBackground = this.add
@@ -222,6 +221,7 @@ export class UiScene extends Phaser.Scene {
     this.refreshDebugPaneLayout();
     this.setupHiddenCommandInput();
     this.input.on(Phaser.Input.Events.POINTER_WHEEL, this.handleDebugPaneWheel, this);
+    this.input.on(Phaser.Input.Events.POINTER_MOVE, this.handleGlobalPointerMove, this);
     this.input.on(Phaser.Input.Events.POINTER_UP, this.handleGlobalPointerUp, this);
     this.refreshDebugCommandText();
   }
@@ -507,7 +507,7 @@ export class UiScene extends Phaser.Scene {
       this.debugCommandHiddenInput.value = '';
     }
     this.refreshDebugCommandText();
-    this.focusHiddenCommandInput();
+    this.refocusHiddenCommandInput();
   }
 
   private refreshDebugCommandText(): void {
@@ -553,11 +553,22 @@ export class UiScene extends Phaser.Scene {
 
     try {
       return runWithHelpers(`const console = consoleRef; return (${command});`);
-    } catch {
+    } catch (error) {
+      if (!(error instanceof SyntaxError)) {
+        throw error;
+      }
+
       return runWithHelpers(`const console = consoleRef; ${command}`);
     }
   }
 
+  private refocusHiddenCommandInput(): void {
+    this.focusHiddenCommandInput();
+
+    if (typeof window !== 'undefined') {
+      window.setTimeout(() => this.focusHiddenCommandInput(), 0);
+    }
+  }
 
   private restoreConsoleOutput(): void {
     CONSOLE_METHODS.forEach((method) => {
@@ -602,8 +613,27 @@ export class UiScene extends Phaser.Scene {
   }
 
 
+  private handleDebugPaneDrag(pointer: Phaser.Input.Pointer): void {
+    if (!pointer.isDown || this.dragStartY === undefined || !this.isDraggingDebugPane) {
+      return;
+    }
+
+    const estimatedLineHeight = 18;
+    const movedLines = Math.round((pointer.y - this.dragStartY) / estimatedLineHeight);
+    this.setDebugLogScrollOffset(this.dragStartOffset + movedLines);
+  }
+
+  private readonly handleGlobalPointerMove = (pointer: Phaser.Input.Pointer): void => {
+    if (!this.isDraggingDebugPane) {
+      return;
+    }
+
+    this.handleDebugPaneDrag(pointer);
+  };
+
   private readonly handleGlobalPointerUp = (): void => {
     this.dragStartY = undefined;
+    this.isDraggingDebugPane = false;
   };
 
   private readonly handleDebugPaneWheel = (
