@@ -3,7 +3,7 @@ import { EventSystem } from '../systems/EventSystem';
 import type { DialogOptionEffects } from '../systems/DialogueSystem';
 import { SimulationManager } from '../systems/SimulationManager';
 import { SaveSystem } from '../systems/SaveSystem';
-import { DEFAULT_SAFE_AREA_INSETS, InitialViewportState, SafeAreaInsets, UI_SAFE_AREA_EVENT } from './layoutContract';
+import { DEFAULT_SAFE_AREA_INSETS, InitialViewportState, SafeAreaInsets, UI_ROTATE_HINT_EVENT, UI_SAFE_AREA_EVENT } from './layoutContract';
 
 const AUTOSAVE_INTERVAL_MS = 10_000;
 const EVENT_HEARTBEAT_INTERVAL_MS = 3_000;
@@ -35,6 +35,8 @@ export class CageScene extends Phaser.Scene {
   private temporaryAnimationUntilMs = 0;
   private safeAreaInsets: SafeAreaInsets = { ...DEFAULT_SAFE_AREA_INSETS };
   private detachSafeAreaListener?: () => void;
+  private detachRotateHintListener?: () => void;
+  private isRotateHintVisible = false;
   private hasResolvedInitialLayout = false;
   private safeAreaFallbackTimer?: Phaser.Time.TimerEvent;
 
@@ -81,6 +83,7 @@ export class CageScene extends Phaser.Scene {
     this.events.on('dialog:apply-effects', this.handleDialogEffects, this);
 
     this.bindSafeAreaLayoutContract();
+    this.bindRotateHintContract();
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
 
     const initialWidth = initialViewport?.width ?? this.scale.width;
@@ -98,6 +101,7 @@ export class CageScene extends Phaser.Scene {
       this.events.off('action:clean', this.handleCleanAction, this);
       this.events.off('dialog:apply-effects', this.handleDialogEffects, this);
       this.detachSafeAreaListener?.();
+      this.detachRotateHintListener?.();
       this.safeAreaFallbackTimer?.remove(false);
       this.safeAreaFallbackTimer = undefined;
     });
@@ -425,6 +429,27 @@ export class CageScene extends Phaser.Scene {
     };
   }
 
+
+  private bindRotateHintContract(): void {
+    const handleRotateHint = (payload: { show: boolean }): void => {
+      this.isRotateHintVisible = payload.show;
+      this.layoutScene(this.scale.width, this.scale.height);
+    };
+
+    this.game.events.on(UI_ROTATE_HINT_EVENT, handleRotateHint);
+    this.detachRotateHintListener = () => {
+      this.game.events.off(UI_ROTATE_HINT_EVENT, handleRotateHint);
+    };
+  }
+
+  private getViewportIsNarrow(): boolean {
+    const parentWidth = this.scale.parentSize.width || window.innerWidth;
+    const parentHeight = this.scale.parentSize.height || window.innerHeight;
+    const isPortrait = parentHeight > parentWidth;
+    const aspect = parentWidth / Math.max(1, parentHeight);
+    return isPortrait && aspect < 0.72;
+  }
+
   private scheduleInitialLayout(width: number, height: number): void {
     this.safeAreaFallbackTimer?.remove(false);
     this.safeAreaFallbackTimer = this.time.delayedCall(SAFE_AREA_FALLBACK_DELAY_MS, () => {
@@ -448,7 +473,7 @@ export class CageScene extends Phaser.Scene {
   }
 
   private layoutScene(width: number, height: number): void {
-    const isNarrow = width < 720;
+    const isNarrow = width < 720 || this.getViewportIsNarrow();
     const { topInset, bottomInset } = this.safeAreaInsets;
     const usableBottom = Math.max(topInset + 80, height - bottomInset);
     const usableHeight = Math.max(120, usableBottom - topInset);
@@ -480,7 +505,7 @@ export class CageScene extends Phaser.Scene {
       this.statusText.setPosition(20, statusY);
       this.statusText.setFontSize(isNarrow ? '12px' : '14px');
       this.statusText.setWordWrapWidth(Math.max(230, width - 40));
-      this.statusText.setAlpha(isNarrow ? 0.92 : 1);
+      this.statusText.setAlpha(this.isRotateHintVisible ? 0.6 : isNarrow ? 0.92 : 1);
     }
   }
 
