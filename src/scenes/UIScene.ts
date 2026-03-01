@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { DialogEntry, DialogOption, DialogueSystem } from '../systems/DialogueSystem';
 import { DebugConsoleEntry, debugConsole } from '../systems/DebugConsole';
-import { DEFAULT_SAFE_AREA_INSETS, InitialViewportState, SafeAreaInsets, UI_SAFE_AREA_EVENT } from './layoutContract';
+import { DEFAULT_SAFE_AREA_INSETS, InitialViewportState, SafeAreaInsets, UI_ROTATE_HINT_EVENT, UI_SAFE_AREA_EVENT } from './layoutContract';
 
 type TopMenuKey = 'feed' | 'care' | 'social';
 
@@ -57,6 +57,10 @@ export class UIScene extends Phaser.Scene {
   private currentDialogPriority = 0;
   private pendingDialogs: DialogRequest[] = [];
   private hudBackground?: Phaser.GameObjects.Rectangle;
+
+  private rotateHintContainer?: Phaser.GameObjects.Container;
+  private rotateHintBackdrop?: Phaser.GameObjects.Rectangle;
+  private rotateHintText?: Phaser.GameObjects.Text;
   private controlsAreaHeight = 0;
   private safeAreaInsets: SafeAreaInsets = { ...DEFAULT_SAFE_AREA_INSETS };
 
@@ -94,6 +98,7 @@ export class UIScene extends Phaser.Scene {
 
     this.createTouchControls();
     this.createDialogModal();
+    this.createRotateHintOverlay();
     const initialWidth = data?.initialViewport?.width ?? this.scale.width;
     const initialHeight = data?.initialViewport?.height ?? this.scale.height;
     this.safeAreaInsets = data?.initialViewport?.safeAreaInsets ?? { ...DEFAULT_SAFE_AREA_INSETS };
@@ -359,6 +364,25 @@ export class UIScene extends Phaser.Scene {
     this.dialogModal.setDepth(30);
     this.dialogModal.setVisible(false);
     this.dialogBackdrop.disableInteractive();
+  }
+
+
+  private createRotateHintOverlay(): void {
+    this.rotateHintBackdrop = this.add.rectangle(320, 240, 640, 480, 0x000000, 0.66);
+    this.rotateHintText = this.add.text(320, 240, `📱 Rotate device for best play\nLandscape is recommended on phones.`, {
+      fontFamily: 'monospace',
+      fontSize: '18px',
+      color: '#f6f4cf',
+      align: 'center',
+      lineSpacing: 6,
+      stroke: '#111111',
+      strokeThickness: 3,
+    });
+    this.rotateHintText.setOrigin(0.5);
+
+    this.rotateHintContainer = this.add.container(0, 0, [this.rotateHintBackdrop, this.rotateHintText]);
+    this.rotateHintContainer.setDepth(40);
+    this.rotateHintContainer.setVisible(false);
   }
 
   private createDebugOverlay(): void {
@@ -723,12 +747,24 @@ export class UIScene extends Phaser.Scene {
     hitArea?.setTo(-width / 2, -height / 2, width, height);
   }
 
+
+  private getViewportMetrics(): { isNarrowPortrait: boolean } {
+    const parentWidth = this.scale.parentSize.width || window.innerWidth;
+    const parentHeight = this.scale.parentSize.height || window.innerHeight;
+    const isPortrait = parentHeight > parentWidth;
+    const aspect = parentWidth / Math.max(1, parentHeight);
+    const isNarrowPortrait = isPortrait && aspect < 0.72;
+
+    return { isNarrowPortrait };
+  }
+
   private handleResize(gameSize: Phaser.Structs.Size): void {
     this.layoutResponsiveUi(gameSize.width, gameSize.height);
   }
 
   private layoutResponsiveUi(width: number, height: number): void {
-    const isNarrow = width < 900;
+    const { isNarrowPortrait } = this.getViewportMetrics();
+    const isNarrow = width < 900 || isNarrowPortrait;
     const sidePadding = isNarrow ? 12 : 14;
     const topPadding = 10;
     const gap = isNarrow ? 10 : 12;
@@ -792,6 +828,9 @@ export class UIScene extends Phaser.Scene {
     };
     this.game.events.emit(UI_SAFE_AREA_EVENT, this.safeAreaInsets);
 
+    this.rotateHintContainer?.setVisible(isNarrowPortrait);
+    this.game.events.emit(UI_ROTATE_HINT_EVENT, { show: isNarrowPortrait });
+
     if (this.hudBackground) {
       this.hudBackground.setPosition(width / 2, topPadding + hudHeight / 2);
       this.hudBackground.setSize(width, hudHeight);
@@ -823,6 +862,14 @@ export class UIScene extends Phaser.Scene {
       this.debugText.setPosition(12, 34);
       this.debugText.setWordWrapWidth(debugWidth - 24);
       this.debugVisibleLines = Math.max(3, Math.floor((debugHeight - 48) / 20));
+    }
+
+    if (this.rotateHintBackdrop && this.rotateHintText) {
+      this.rotateHintBackdrop.setPosition(width / 2, height / 2).setSize(width, height);
+      this.rotateHintText
+        .setPosition(width / 2, height / 2)
+        .setFontSize(isNarrow ? '16px' : '18px')
+        .setWordWrapWidth(Math.max(240, width - 80));
     }
 
     const dialogWidth = Math.min(560, width - (isNarrow ? 20 : 28));

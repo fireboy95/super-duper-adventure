@@ -1,4 +1,5 @@
 export const UI_SAFE_AREA_EVENT = 'ui:safe-area';
+export const UI_ROTATE_HINT_EVENT = 'ui:rotate-hint';
 
 export interface SafeAreaInsets {
   topInset: number;
