@@ -29,6 +29,10 @@ export class UIScene extends Phaser.Scene {
 
   private menuBar?: Phaser.GameObjects.Container;
   private subMenuBar?: Phaser.GameObjects.Container;
+  private controlsDrawer?: Phaser.GameObjects.Container;
+  private controlsDrawerBackdrop?: Phaser.GameObjects.Rectangle;
+  private controlsDrawerPanel?: Phaser.GameObjects.Rectangle;
+  private launcherButton?: Phaser.GameObjects.Container;
   private topMenuButtons = new Map<TopMenuKey, Phaser.GameObjects.Container>();
   private actionGroupButtons = new Map<string, Phaser.GameObjects.Container>();
   private subActionButtons = new Map<string, Phaser.GameObjects.Container>();
@@ -57,6 +61,8 @@ export class UIScene extends Phaser.Scene {
   private pendingDialogs: DialogRequest[] = [];
   private hudBackground?: Phaser.GameObjects.Rectangle;
   private controlsAreaHeight = 0;
+  private isControlsDrawerOpen = false;
+  private isModalBlockingControls = false;
 
   constructor() {
     super('UIScene');
@@ -185,6 +191,8 @@ export class UIScene extends Phaser.Scene {
       return;
     }
 
+    this.closeControlsDrawer();
+    this.isModalBlockingControls = true;
     this.currentDialog = dialog;
     this.currentDialogPage = 0;
     this.currentDialogEventId = request.eventId ?? null;
@@ -267,6 +275,7 @@ export class UIScene extends Phaser.Scene {
     this.renderDialogOptions([]);
     this.dialogBackdrop?.disableInteractive();
     this.dialogModal?.setVisible(false);
+    this.isModalBlockingControls = false;
     this.openNextPendingDialog();
   }
 
@@ -408,8 +417,32 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createTouchControls(): void {
+    this.controlsDrawerBackdrop = this.add.rectangle(320, 240, 640, 480, 0x000000, 0.001);
+    this.controlsDrawerBackdrop.setVisible(false);
+    this.controlsDrawerBackdrop.disableInteractive();
+    this.controlsDrawerBackdrop.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
+      this.closeControlsDrawer();
+    });
+
     this.menuBar = this.add.container(0, 0);
     this.subMenuBar = this.add.container(0, 0);
+    this.controlsDrawerPanel = this.add.rectangle(0, 0, 220, 100, 0x13161d, 0.92);
+    this.controlsDrawerPanel.setOrigin(0, 0);
+    this.controlsDrawerPanel.setStrokeStyle(2, 0xc9dbff, 0.78);
+    this.controlsDrawerPanel.setInteractive({ useHandCursor: true });
+    this.controlsDrawerPanel.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
+    });
+
+    this.controlsDrawer = this.add.container(0, 0, [this.controlsDrawerPanel, this.menuBar, this.subMenuBar]);
+    this.controlsDrawer.setDepth(24);
+    this.controlsDrawer.setVisible(false);
+
+    this.launcherButton = this.createActionButton('☰', 'MENU', 0x474c57, () => {
+      this.toggleControlsDrawer();
+    });
+    this.launcherButton.setDepth(25);
 
     const actions: Array<{ key: string; icon: string; label: string; color: number; onPress: () => void }> = [
       { key: 'feed-standard', icon: '🥣', label: 'FEED', color: 0x306a43, onPress: () => this.scene.get('CageScene').events.emit('action:feed') },
@@ -435,16 +468,52 @@ export class UIScene extends Phaser.Scene {
         if (action.key === 'feed-sweet' && this.sweetButtonDisabled) return;
         this.sound.play('ui-click', { volume: 0.25 });
         action.onPress();
+        this.closeControlsDrawer();
       });
       button.setData('isPrimaryAction', true);
-      this.setButtonVisibility(button, true, false);
+      this.setButtonVisibility(button, false, false);
       this.subActionButtons.set(action.key, button);
       this.subMenuBar.add(button);
     }
 
     this.setActionButtonDisabled(this.subActionButtons.get('feed-standard'), false, 0x306a43);
     this.setActionButtonDisabled(this.subActionButtons.get('feed-sweet'), false, 0x6e3e8c);
+    this.closeControlsDrawer();
     this.layoutResponsiveUi(this.scale.width, this.scale.height);
+  }
+
+  private toggleControlsDrawer(): void {
+    if (this.isModalBlockingControls) return;
+
+    if (this.isControlsDrawerOpen) {
+      this.closeControlsDrawer();
+      return;
+    }
+
+    this.openControlsDrawer();
+  }
+
+  private openControlsDrawer(): void {
+    if (this.isModalBlockingControls) return;
+
+    this.isControlsDrawerOpen = true;
+    this.controlsDrawer?.setVisible(true);
+    this.controlsDrawerBackdrop?.setVisible(true);
+    this.controlsDrawerBackdrop?.setInteractive();
+    this.refreshActionHierarchy();
+  }
+
+  private closeControlsDrawer(): void {
+    if (!this.isControlsDrawerOpen && !this.controlsDrawer?.visible) {
+      this.controlsAreaHeight = 4;
+      return;
+    }
+
+    this.isControlsDrawerOpen = false;
+    this.controlsDrawerBackdrop?.disableInteractive();
+    this.controlsDrawerBackdrop?.setVisible(false);
+    this.controlsDrawer?.setVisible(false);
+    this.refreshActionHierarchy();
   }
 
 
@@ -466,20 +535,26 @@ export class UIScene extends Phaser.Scene {
   }
 
   private refreshActionHierarchy(): void {
+    const shouldRenderControls = this.isControlsDrawerOpen;
+
     for (const [groupKey, button] of this.actionGroupButtons.entries()) {
-      const isVisible = button.getData('menu') === this.activeMenu && !this.activeActionGroup;
+      const isVisible = shouldRenderControls && button.getData('menu') === this.activeMenu && !this.activeActionGroup;
       this.setButtonVisibility(button, isVisible, true);
       const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
       background?.setStrokeStyle(2, groupKey === this.activeActionGroup ? 0xfff7ba : 0xeeeeee, groupKey === this.activeActionGroup ? 1 : 0.9);
     }
 
     if (this.backButton) {
-      const isBackVisible = this.activeMenu !== null && this.activeActionGroup !== null;
+      const isBackVisible = shouldRenderControls && this.activeMenu !== null && this.activeActionGroup !== null;
       this.setButtonVisibility(this.backButton, isBackVisible, true);
     }
 
+    const hasHierarchy = this.topMenuButtons.size > 0 || this.actionGroupButtons.size > 0;
+
     for (const button of this.subActionButtons.values()) {
-      const isVisible = button.getData('menu') === this.activeMenu && button.getData('group') === this.activeActionGroup;
+      const isVisible = hasHierarchy
+        ? shouldRenderControls && button.getData('menu') === this.activeMenu && button.getData('group') === this.activeActionGroup
+        : shouldRenderControls;
       this.setButtonVisibility(button, isVisible, false);
       if (isVisible) {
         this.applyActionDisabledState(button);
@@ -657,7 +732,7 @@ export class UIScene extends Phaser.Scene {
 
     topButtons.forEach((button, index) => {
       const x = sidePadding + index * (topButtonWidth + gap) + topButtonWidth / 2;
-      const y = height - 24;
+      const y = topButtonHeight / 2 + 14;
       const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
       this.resizeInteractiveBackground(background, topButtonWidth, topButtonHeight);
       button.setSize(topButtonWidth, topButtonHeight);
@@ -673,7 +748,7 @@ export class UIScene extends Phaser.Scene {
     const subRows = Math.max(1, Math.ceil((visibleSubButtons.length || 1) / subColumns));
     const subRowGap = 8;
     const subButtonHeight = 38;
-    const subTopY = height - (isNarrow ? 48 : 42) - (subRows - 1) * (subButtonHeight + subRowGap);
+    const subTopY = topButtonHeight + 28;
 
     visibleSubButtons.forEach((button, index) => {
       const column = index % subColumns;
@@ -688,7 +763,41 @@ export class UIScene extends Phaser.Scene {
       button.setPosition(x, y);
     });
 
-    this.controlsAreaHeight = subRows * (subButtonHeight + subRowGap) + (hasTopButtons ? topButtonHeight + 24 : 14);
+    const drawerHasVisibleControls = this.isControlsDrawerOpen && visibleSubButtons.length > 0;
+    const drawerWidth = Math.min(width - sidePadding * 2, isNarrow ? 320 : 420);
+    const panelPadding = 12;
+    const drawerHeight = drawerHasVisibleControls
+      ? subTopY + subRows * (subButtonHeight + subRowGap) + panelPadding
+      : Math.max(68, topButtonHeight + 32);
+
+    if (this.controlsDrawerPanel) {
+      this.controlsDrawerPanel.setSize(drawerWidth, drawerHeight);
+    }
+
+    if (this.controlsDrawer) {
+      const drawerX = width - sidePadding - drawerWidth;
+      const launcherSize = isNarrow ? 44 : 46;
+      const launcherBottomOffset = isNarrow ? 18 : 20;
+      const drawerY = height - launcherBottomOffset - launcherSize - 10 - drawerHeight;
+      this.controlsDrawer.setPosition(drawerX, Math.max(80, drawerY));
+    }
+
+    if (this.controlsDrawerBackdrop) {
+      this.controlsDrawerBackdrop.setPosition(width / 2, height / 2).setSize(width, height);
+    }
+
+    if (this.launcherButton) {
+      const launcherSize = isNarrow ? 122 : 136;
+      const launcherHeight = isNarrow ? 40 : 44;
+      const launcherX = width - sidePadding - launcherSize / 2;
+      const launcherY = height - (isNarrow ? 18 : 20) - launcherHeight / 2;
+      const launcherBackground = this.launcherButton.list[0] as Phaser.GameObjects.Rectangle | undefined;
+      this.resizeInteractiveBackground(launcherBackground, launcherSize, launcherHeight);
+      this.launcherButton.setSize(launcherSize, launcherHeight);
+      this.launcherButton.setPosition(launcherX, launcherY);
+    }
+
+    this.controlsAreaHeight = this.isControlsDrawerOpen ? drawerHeight + 20 : 4;
 
     if (this.hudBackground) {
       const hudHeight = isNarrow ? 68 : 52;
