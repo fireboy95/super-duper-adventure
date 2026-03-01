@@ -89,6 +89,7 @@ export class SimulationManager {
 
     switch (action) {
       case 'feed_standard':
+        if ((this.state.inventory.food_standard ?? 0) <= 0) return;
         this.changeStat('hunger', -14);
         this.changeStat('mood', 4);
         this.incrementInventory('food_standard', -1);
