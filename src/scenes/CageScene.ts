@@ -419,14 +419,22 @@ export class CageScene extends Phaser.Scene {
     this.timeOfDayOverlay?.setPosition(width / 2, height / 2).setSize(width, height);
     this.grimeOverlay?.setPosition(width / 2, height / 2).setSize(width, height);
     this.stressOverlay?.setPosition(width / 2, height / 2).setSize(width, height);
+
+    const hamsterBottomMargin = isNarrow ? 26 : 34;
+    const hamsterY = Math.min(usableBottom - hamsterBottomMargin, topInset + usableHeight * 0.62);
+    const auraBottomMargin = hamsterBottomMargin + (isNarrow ? 6 : 10);
+    const auraY = Math.min(usableBottom - auraBottomMargin, topInset + usableHeight * 0.62) + 10;
+
     this.ambientGlow?.setPosition(width / 2, centerY - 25).setSize(Math.max(320, width * 0.82), Math.max(140, usableHeight * 0.36));
-    this.moodAura?.setPosition(width / 2, Math.min(usableBottom - (isNarrow ? 176 : 186), topInset + usableHeight * 0.62) + 10).setSize(Math.max(170, width * 0.32), 96);
-    this.hamster?.setPosition(width / 2, Math.min(usableBottom - (isNarrow ? 170 : 185), topInset + usableHeight * 0.62));
+    this.moodAura?.setPosition(width / 2, auraY).setSize(Math.max(170, width * 0.32), 96);
+    this.hamster?.setPosition(width / 2, hamsterY);
 
     this.cageLabel?.setPosition(20, 20).setFontSize(isNarrow ? '14px' : '16px');
 
     if (this.statusText) {
-      this.statusText.setPosition(20, Math.max(topInset + 8, usableBottom - (isNarrow ? 250 : 140)));
+      const statusBottomMargin = isNarrow ? 170 : 132;
+      const statusY = Math.max(topInset + 8, usableBottom - statusBottomMargin);
+      this.statusText.setPosition(20, statusY);
       this.statusText.setFontSize(isNarrow ? '12px' : '14px');
       this.statusText.setWordWrapWidth(Math.max(230, width - 40));
       this.statusText.setAlpha(isNarrow ? 0.92 : 1);
