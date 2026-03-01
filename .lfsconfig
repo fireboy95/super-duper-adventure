@@ -1,0 +1,2 @@
+[lfs]
+	fetchexclude = public/assets/audio/move-blip.wav
