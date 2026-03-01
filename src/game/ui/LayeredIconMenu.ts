@@ -119,7 +119,7 @@ export class LayeredIconMenu {
     const statusFontSize = this.getStatusFontSize();
     const titleFontSize = this.getTitleFontSize();
     const compact = this.isCompactLayout();
-    const textStartX = compact ? padding : padding + this.getBackButtonWidth() + 10;
+    const textStartX = padding;
     const textMaxWidth = this.scene.scale.width - textStartX - (padding + 52);
 
     this.dismissZone.setSize(this.scene.scale.width, this.scene.scale.height);
@@ -137,7 +137,7 @@ export class LayeredIconMenu {
 
     const toggleX = this.scene.scale.width - padding - 44;
     this.toggleButton.setPosition(toggleX, 18);
-    this.backButton.setPosition(padding, 18);
+    this.backButton.setPosition(toggleX - this.getBackButtonWidth() - 8, 18);
     this.backButton.setDepth(11);
 
     this.renderLayer(false);
@@ -270,7 +270,7 @@ export class LayeredIconMenu {
   }
 
   private createBackButton(): Phaser.GameObjects.Container {
-    const x = this.getDockSidePadding();
+    const x = this.scene.scale.width - this.getDockSidePadding() - this.getBackButtonWidth() - 44 - 8;
     const y = 18;
     const buttonWidth = this.getBackButtonWidth();
     const container = this.scene.add.container(x, y).setDepth(9);
@@ -280,12 +280,12 @@ export class LayeredIconMenu {
       .setStrokeStyle(1, 0x86a8ff, 0.6)
       .setOrigin(0, 0);
     const label = this.scene.add
-      .text(12, 18, '← Back', {
+      .text(buttonWidth / 2, 18, '←', {
         fontFamily: 'Arial, sans-serif',
-        fontSize: '16px',
+        fontSize: '22px',
         color: '#f8fbff',
       })
-      .setOrigin(0, 0.5);
+      .setOrigin(0.5);
 
     const hitArea = this.scene.add
       .zone(0, 0, buttonWidth, 36)
@@ -406,6 +406,6 @@ export class LayeredIconMenu {
   }
 
   private getBackButtonWidth(): number {
-    return Math.min(120, Math.max(96, this.scene.scale.width * 0.25));
+    return 36;
   }
 }
