@@ -316,6 +316,13 @@ export class UiScene extends Phaser.Scene {
       return;
     }
 
+    this.setDebugPaneInputEnabled(nextExpandedState);
+
+    if (!nextExpandedState) {
+      this.suppressCommandFocusUntil = Date.now() + DEBUG_SCROLL_FOCUS_SUPPRESSION_MS;
+      this.blurHiddenCommandInput();
+    }
+
     this.debugPaneContainer.setVisible(true);
     this.debugButtonLabel.setText(nextExpandedState ? 'Close' : 'Debug');
 
@@ -475,7 +482,7 @@ export class UiScene extends Phaser.Scene {
   };
 
   private focusHiddenCommandInputIfAllowed(): void {
-    if (Date.now() < this.suppressCommandFocusUntil) {
+    if (!this.isDebugPaneExpanded || Date.now() < this.suppressCommandFocusUntil) {
       return;
     }
 
@@ -483,7 +490,25 @@ export class UiScene extends Phaser.Scene {
   }
 
   private focusHiddenCommandInput(): void {
+    if (!this.isDebugPaneExpanded) {
+      return;
+    }
+
     this.debugCommandHiddenInput?.focus();
+  }
+
+  private setDebugPaneInputEnabled(enabled: boolean): void {
+    if (this.debugPaneScrollHitArea?.input) {
+      this.debugPaneScrollHitArea.input.enabled = enabled;
+    }
+
+    if (this.debugCommandInputContainer?.input) {
+      this.debugCommandInputContainer.input.enabled = enabled;
+    }
+
+    if (this.debugCommandSubmitButton?.input) {
+      this.debugCommandSubmitButton.input.enabled = enabled;
+    }
   }
 
   private blurHiddenCommandInput(): void {
