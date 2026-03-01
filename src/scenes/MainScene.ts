@@ -6,6 +6,13 @@ export class MainScene extends Phaser.Scene {
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private audioSystem?: AudioSystem;
   private moveSoundCooldownMs = 0;
+  private moveX = 0;
+  private moveY = 0;
+  private keyboardMoveX = 0;
+  private keyboardMoveY = 0;
+  private pointerMoveX = 0;
+  private pointerMoveY = 0;
+  private activePointerId?: number;
 
   constructor() {
     super('main-scene');
@@ -52,23 +59,24 @@ export class MainScene extends Phaser.Scene {
     this.player = this.add.circle(400, 300, 20, 0x4caf50);
     this.cursors = this.input.keyboard?.createCursorKeys();
     this.audioSystem = new AudioSystem(this);
+
+    this.input.on('pointerdown', this.handlePointerDown, this);
+    this.input.on('pointermove', this.handlePointerMove, this);
+    this.input.on('pointerup', this.handlePointerUp, this);
   }
 
   update(_time: number, delta: number): void {
-    if (!this.player || !this.cursors) return;
+    if (!this.player) return;
+
+    this.syncKeyboardMovement();
+    this.syncUnifiedMovement();
 
     const speed = 0.25 * delta;
 
-    const isMoving =
-      this.cursors.left.isDown ||
-      this.cursors.right.isDown ||
-      this.cursors.up.isDown ||
-      this.cursors.down.isDown;
+    const isMoving = this.moveX !== 0 || this.moveY !== 0;
 
-    if (this.cursors.left.isDown) this.player.x -= speed;
-    if (this.cursors.right.isDown) this.player.x += speed;
-    if (this.cursors.up.isDown) this.player.y -= speed;
-    if (this.cursors.down.isDown) this.player.y += speed;
+    this.player.x += this.moveX * speed;
+    this.player.y += this.moveY * speed;
 
     this.moveSoundCooldownMs = Math.max(0, this.moveSoundCooldownMs - delta);
     if (isMoving && this.moveSoundCooldownMs === 0) {
@@ -81,5 +89,70 @@ export class MainScene extends Phaser.Scene {
 
     this.player.x = Phaser.Math.Clamp(this.player.x, 20, this.scale.width - 20);
     this.player.y = Phaser.Math.Clamp(this.player.y, 20, this.scale.height - 20);
+  }
+
+  private handlePointerDown(pointer: Phaser.Input.Pointer): void {
+    this.activePointerId = pointer.id;
+    this.updatePointerMovement(pointer);
+    this.syncUnifiedMovement();
+  }
+
+  private handlePointerMove(pointer: Phaser.Input.Pointer): void {
+    if (this.activePointerId !== pointer.id) return;
+
+    this.updatePointerMovement(pointer);
+    this.syncUnifiedMovement();
+  }
+
+  private handlePointerUp(pointer: Phaser.Input.Pointer): void {
+    if (this.activePointerId !== pointer.id) return;
+
+    this.activePointerId = undefined;
+    this.pointerMoveX = 0;
+    this.pointerMoveY = 0;
+    this.syncUnifiedMovement();
+  }
+
+  private updatePointerMovement(pointer: Phaser.Input.Pointer): void {
+    if (!this.player) return;
+
+    const deltaX = pointer.worldX - this.player.x;
+    const deltaY = pointer.worldY - this.player.y;
+    const distance = Math.hypot(deltaX, deltaY);
+
+    if (distance < 8) {
+      this.pointerMoveX = 0;
+      this.pointerMoveY = 0;
+      return;
+    }
+
+    this.pointerMoveX = deltaX / distance;
+    this.pointerMoveY = deltaY / distance;
+  }
+
+  private syncKeyboardMovement(): void {
+    if (!this.cursors) {
+      this.keyboardMoveX = 0;
+      this.keyboardMoveY = 0;
+      return;
+    }
+
+    this.keyboardMoveX = Number(this.cursors.right.isDown) - Number(this.cursors.left.isDown);
+    this.keyboardMoveY = Number(this.cursors.down.isDown) - Number(this.cursors.up.isDown);
+  }
+
+  private syncUnifiedMovement(): void {
+    const combinedX = this.keyboardMoveX + this.pointerMoveX;
+    const combinedY = this.keyboardMoveY + this.pointerMoveY;
+    const magnitude = Math.hypot(combinedX, combinedY);
+
+    if (magnitude > 0) {
+      this.moveX = combinedX / magnitude;
+      this.moveY = combinedY / magnitude;
+      return;
+    }
+
+    this.moveX = 0;
+    this.moveY = 0;
   }
 }
