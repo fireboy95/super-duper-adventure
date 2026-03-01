@@ -28,18 +28,15 @@ jobs:
           lfs: false
           fetch-depth: 0
 
-      - name: Ensure required LFS audio is present for build
+      - name: Materialize move-blip audio from Git LFS
         run: |
           git lfs version
           # Pull the exact asset required at runtime for movement SFX.
           git lfs pull --include="public/assets/audio/move-blip.wav" --exclude=""
 
-      - name: Validate move-blip is materialized (not an LFS pointer)
-        run: |
           test -f public/assets/audio/move-blip.wav
-          first_line=$(head -n 1 public/assets/audio/move-blip.wav)
-          if [ "$first_line" = "version https://git-lfs.github.com/spec/v1" ]; then
-            echo "ERROR: move-blip.wav is still an LFS pointer file"
+          if LC_ALL=C grep -aq "^version https://git-lfs.github.com/spec/v1" public/assets/audio/move-blip.wav; then
+            echo "ERROR: move-blip.wav is still an LFS pointer file after git lfs pull"
             exit 1
           fi
 
