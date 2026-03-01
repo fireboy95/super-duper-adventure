@@ -728,22 +728,16 @@ export class UIScene extends Phaser.Scene {
     const sidePadding = isNarrow ? 12 : 14;
     const topPadding = 10;
     const gap = isNarrow ? 10 : 12;
+    const bottomPadding = isNarrow ? 10 : 12;
+    const interRowGap = isNarrow ? 10 : 12;
 
     const topButtons = Array.from(this.topMenuButtons.values());
-    const hasTopButtons = topButtons.length > 0;
+    const visibleTopButtons = topButtons.filter((button) => button.visible);
+    const hasTopButtons = visibleTopButtons.length > 0;
     const columns = Math.max(1, topButtons.length);
     const availableWidth = width - sidePadding * 2 - gap * (columns - 1);
     const topButtonWidth = Math.max(isNarrow ? 110 : 120, Math.floor(availableWidth / columns));
-    const topButtonHeight = hasTopButtons ? (isNarrow ? 50 : 44) : 0;
-
-    topButtons.forEach((button, index) => {
-      const x = sidePadding + index * (topButtonWidth + gap) + topButtonWidth / 2;
-      const y = height - 24;
-      const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
-      this.resizeInteractiveBackground(background, topButtonWidth, topButtonHeight);
-      button.setSize(topButtonWidth, topButtonHeight);
-      button.setPosition(x, y);
-    });
+    const topRowHeight = hasTopButtons ? (isNarrow ? 50 : 44) : 0;
 
     const visibleSubButtons = Array.from(this.subMenuBar?.list ?? []).filter(
       (entry): entry is Phaser.GameObjects.Container => entry instanceof Phaser.GameObjects.Container && entry.visible,
@@ -751,16 +745,33 @@ export class UIScene extends Phaser.Scene {
     const subColumns = Math.max(1, Math.min(isNarrow ? 2 : 3, visibleSubButtons.length || 1));
     const subAvailableWidth = width - sidePadding * 2 - gap * (subColumns - 1);
     const subButtonWidth = Math.max(130, Math.floor(subAvailableWidth / subColumns));
-    const subRows = Math.max(1, Math.ceil((visibleSubButtons.length || 1) / subColumns));
+    const subRows = visibleSubButtons.length > 0 ? Math.ceil(visibleSubButtons.length / subColumns) : 0;
     const subRowGap = 8;
     const subButtonHeight = 38;
-    const subTopY = height - (isNarrow ? 48 : 42) - (subRows - 1) * (subButtonHeight + subRowGap);
+    const subRowsHeight = subRows > 0 ? subRows * subButtonHeight + (subRows - 1) * subRowGap : 0;
+    const stackGap = hasTopButtons && subRows > 0 ? interRowGap : 0;
+    const controlsAreaHeight = bottomPadding + topRowHeight + stackGap + subRowsHeight;
+    const stackBottom = height - bottomPadding;
+
+    if (hasTopButtons) {
+      const topRowCenterY = stackBottom - topRowHeight / 2;
+      visibleTopButtons.forEach((button, index) => {
+        const x = sidePadding + index * (topButtonWidth + gap) + topButtonWidth / 2;
+        const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
+        this.resizeInteractiveBackground(background, topButtonWidth, topRowHeight);
+        button.setSize(topButtonWidth, topRowHeight);
+        button.setPosition(x, topRowCenterY);
+      });
+    }
+
+    const subBottom = stackBottom - topRowHeight - stackGap;
+    const subTop = subBottom - subRowsHeight;
 
     visibleSubButtons.forEach((button, index) => {
       const column = index % subColumns;
       const row = Math.floor(index / subColumns);
       const x = sidePadding + column * (subButtonWidth + gap) + subButtonWidth / 2;
-      const y = subTopY + row * (subButtonHeight + subRowGap);
+      const y = subTop + row * (subButtonHeight + subRowGap) + subButtonHeight / 2;
       const background = button.list[0] as Phaser.GameObjects.Rectangle | undefined;
       const label = button.list[2] as Phaser.GameObjects.Text | undefined;
       this.resizeInteractiveBackground(background, subButtonWidth, subButtonHeight);
@@ -769,11 +780,11 @@ export class UIScene extends Phaser.Scene {
       button.setPosition(x, y);
     });
 
-    this.controlsAreaHeight = subRows * (subButtonHeight + subRowGap) + (hasTopButtons ? topButtonHeight + 24 : 14);
+    this.controlsAreaHeight = controlsAreaHeight;
     const hudHeight = isNarrow ? 68 : 52;
     const safeAreaInsets: SafeAreaInsets = {
       topInset: topPadding + hudHeight,
-      bottomInset: this.controlsAreaHeight,
+      bottomInset: controlsAreaHeight,
     };
     this.game.events.emit(UI_SAFE_AREA_EVENT, safeAreaInsets);
 
