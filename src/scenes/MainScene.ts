@@ -17,6 +17,13 @@ export class MainScene extends Phaser.Scene {
 
   create(): void {
     this.cameras.main.setBackgroundColor('#1e1e2f');
+    const hasKeyboardInput = Boolean(this.input.keyboard?.enabled);
+    const movementInstruction = hasKeyboardInput
+      ? 'Use arrow keys to move the player.'
+      : 'Drag or use on-screen controls to move.';
+    const audioInstruction = hasKeyboardInput
+      ? 'Movement plays blip audio while holding arrow keys.'
+      : 'Movement plays blip audio while moving.';
 
     this.add
       .text(16, 16, 'Phaser Starter', {
@@ -27,7 +34,7 @@ export class MainScene extends Phaser.Scene {
       .setDepth(1);
 
     this.add
-      .text(16, 52, 'Use arrow keys to move the player.', {
+      .text(16, 52, movementInstruction, {
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',
         color: '#9ad1ff',
@@ -35,7 +42,7 @@ export class MainScene extends Phaser.Scene {
       .setDepth(1);
 
     this.add
-      .text(16, 74, 'Audio smoke test: hold any arrow key for blips.', {
+      .text(16, 74, audioInstruction, {
         fontFamily: 'Arial, sans-serif',
         fontSize: '14px',
         color: '#ffd166',
