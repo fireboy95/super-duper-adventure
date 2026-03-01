@@ -70,7 +70,7 @@ export class HudScene extends Phaser.Scene {
 
   create(data?: { initialViewport?: InitialViewportState }): void {
     this.hudBackground = this.add.rectangle(320, 22, 640, 44, 0x1f1f1f, 0.9);
-    this.hudText = this.add.text(16, 10, 'Hunger -- | Thirst -- | Energy -- | Health -- | Cleanliness -- | Mood --', {
+    this.hudText = this.add.text(16, 10, 'Fuel -- | Hydration -- | Stamina -- | Integrity -- | Habitat -- | Morale --', {
       fontFamily: 'monospace',
       fontSize: '14px',
       color: '#f7f7f7',
@@ -131,7 +131,7 @@ export class HudScene extends Phaser.Scene {
     const cageScene = this.scene.get('GameScene');
     cageScene.events.on('hud:update', (payload: { hunger: number; thirst: number; energy: number; health: number; cleanliness: number; mood: number; foodStandard?: number; foodSweet?: number }) => {
       this.hudText?.setText(
-        `H ${payload.hunger.toFixed(0)}  T ${payload.thirst.toFixed(0)}  E ${payload.energy.toFixed(0)}  HP ${payload.health.toFixed(0)}\nClean ${payload.cleanliness.toFixed(0)}  Mood ${payload.mood.toFixed(0)}`,
+        `Fuel ${payload.hunger.toFixed(0)}  Hyd ${payload.thirst.toFixed(0)}  Stam ${payload.energy.toFixed(0)}  Int ${payload.health.toFixed(0)}\nHab ${payload.cleanliness.toFixed(0)}  Morale ${payload.mood.toFixed(0)}`,
       );
 
       this.setActionButtonDisabled(this.subActionButtons.get('feed-standard'), (payload.foodStandard ?? 0) <= 0, 0x306a43);
