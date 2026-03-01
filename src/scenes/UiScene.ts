@@ -116,8 +116,12 @@ export class UiScene extends Phaser.Scene {
         fontSize: '14px',
         color: '#d8f0ff',
         lineSpacing: 4,
+        wordWrap: {
+          width: Math.max(200, width - 48),
+          useAdvancedWrap: true,
+        },
       })
-      .setOrigin(0.5, 0)
+      .setOrigin(0, 0)
       .setPadding(14, 18, 14, 14)
       .setWordWrapWidth(Math.max(200, width - 48));
 
@@ -302,10 +306,13 @@ export class UiScene extends Phaser.Scene {
 
     this.debugPaneBackground.setSize(width, this.debugPaneHeight);
     this.debugPaneTexture.setSize(width, this.debugPaneHeight);
+    const textAreaWidth = Math.max(200, width - 48);
+    const textAreaHeight = Math.max(0, this.debugPaneHeight - 68);
     this.debugPaneText
-      .setWordWrapWidth(Math.max(200, width - 48))
-      .setPosition(0, 0)
-      .setCrop(0, 0, width, Math.max(0, this.debugPaneHeight - 68));
+      .setWordWrapWidth(textAreaWidth, true)
+      .setFixedSize(textAreaWidth, textAreaHeight)
+      .setPosition(-width / 2 + 12, 0)
+      .setCrop(0, 0, textAreaWidth, textAreaHeight);
 
     const inputWidth = Math.max(220, width - 32);
     this.debugCommandInputContainer.setSize(inputWidth, 42);
