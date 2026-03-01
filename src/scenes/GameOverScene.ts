@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 
-export class EndingScene extends Phaser.Scene {
+export class GameOverScene extends Phaser.Scene {
   constructor() {
-    super('EndingScene');
+    super('GameOverScene');
   }
 
   create(data: { endingId?: string }): void {

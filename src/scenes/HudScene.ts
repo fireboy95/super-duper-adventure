@@ -17,7 +17,7 @@ interface DialogRequest {
   source?: DialogSource;
 }
 
-export class UIScene extends Phaser.Scene {
+export class HudScene extends Phaser.Scene {
   private dialogueSystem = new DialogueSystem();
   private hudText?: Phaser.GameObjects.Text;
   private debugPanel?: Phaser.GameObjects.Container;
@@ -65,7 +65,7 @@ export class UIScene extends Phaser.Scene {
   private safeAreaInsets: SafeAreaInsets = { ...DEFAULT_SAFE_AREA_INSETS };
 
   constructor() {
-    super('UIScene');
+    super('HudScene');
   }
 
   create(data?: { initialViewport?: InitialViewportState }): void {
@@ -128,7 +128,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   private bindHudEvents(): void {
-    const cageScene = this.scene.get('CageScene');
+    const cageScene = this.scene.get('GameScene');
     cageScene.events.on('hud:update', (payload: { hunger: number; thirst: number; energy: number; health: number; cleanliness: number; mood: number; foodStandard?: number; foodSweet?: number }) => {
       this.hudText?.setText(
         `H ${payload.hunger.toFixed(0)}  T ${payload.thirst.toFixed(0)}  E ${payload.energy.toFixed(0)}  HP ${payload.health.toFixed(0)}\nClean ${payload.cleanliness.toFixed(0)}  Mood ${payload.mood.toFixed(0)}`,
@@ -140,7 +140,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   private bindDialogueEvents(): void {
-    const cageScene = this.scene.get('CageScene');
+    const cageScene = this.scene.get('GameScene');
     cageScene.events.on('dialog:show', (payload: string | DialogRequest) => {
       if (typeof payload === 'string') {
         this.enqueueOrShowDialog({ dialogId: payload, source: 'system', priority: 100 });
@@ -237,7 +237,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   private handleOptionSelection(option: DialogOption): void {
-    const cageScene = this.scene.get('CageScene');
+    const cageScene = this.scene.get('GameScene');
 
     if (!option.effects) {
       this.closeDialog();
@@ -488,7 +488,7 @@ export class UIScene extends Phaser.Scene {
         icon: '🥣',
         label: 'FEED',
         color: 0x306a43,
-        onPress: () => this.scene.get('CageScene').events.emit('action:feed'),
+        onPress: () => this.scene.get('GameScene').events.emit('action:feed'),
       },
       {
         key: 'feed-sweet',
@@ -497,7 +497,7 @@ export class UIScene extends Phaser.Scene {
         icon: '🍬',
         label: 'TREAT',
         color: 0x6e3e8c,
-        onPress: () => this.scene.get('CageScene').events.emit('action:feed-sweet'),
+        onPress: () => this.scene.get('GameScene').events.emit('action:feed-sweet'),
       },
       {
         key: 'refill-water',
@@ -507,7 +507,7 @@ export class UIScene extends Phaser.Scene {
         label: 'WATER',
         color: 0x2e6f95,
         onPress: () => {
-          const cageEvents = this.scene.get('CageScene').events;
+          const cageEvents = this.scene.get('GameScene').events;
           cageEvents.emit('action:refill-water');
           cageEvents.emit('action:refill_water');
         },
@@ -519,7 +519,7 @@ export class UIScene extends Phaser.Scene {
         icon: '🧽',
         label: 'CLEAN',
         color: 0x365f82,
-        onPress: () => this.scene.get('CageScene').events.emit('action:clean'),
+        onPress: () => this.scene.get('GameScene').events.emit('action:clean'),
       },
       {
         key: 'handle',
@@ -528,7 +528,7 @@ export class UIScene extends Phaser.Scene {
         icon: '🤝',
         label: 'HANDLE',
         color: 0x7a5738,
-        onPress: () => this.scene.get('CageScene').events.emit('action:handle'),
+        onPress: () => this.scene.get('GameScene').events.emit('action:handle'),
       },
     ];
 

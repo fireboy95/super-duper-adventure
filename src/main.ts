@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene';
-import { CageScene } from './scenes/CageScene';
-import { EndingScene } from './scenes/EndingScene';
-import { TitleScene } from './scenes/TitleScene';
-import { UIScene } from './scenes/UIScene';
+import { GameScene } from './scenes/GameScene';
+import { GameOverScene } from './scenes/GameOverScene';
+import { MainMenuScene } from './scenes/MainMenuScene';
+import { HudScene } from './scenes/HudScene';
 import { debugConsole } from './systems/DebugConsole';
 
 const config: Phaser.Types.Core.GameConfig = {
@@ -17,7 +17,7 @@ const config: Phaser.Types.Core.GameConfig = {
     height: 480,
   },
   pixelArt: true,
-  scene: [BootScene, TitleScene, CageScene, UIScene, EndingScene],
+  scene: [BootScene, MainMenuScene, GameScene, HudScene, GameOverScene],
 };
 
 debugConsole.install();
