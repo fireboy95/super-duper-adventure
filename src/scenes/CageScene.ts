@@ -68,8 +68,8 @@ export class CageScene extends Phaser.Scene {
     this.statusText = this.add.text(80, 360, '', { fontFamily: 'monospace', fontSize: '14px', color: '#ffffff' });
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (pointer.leftButtonDown()) this.simulation.applyPlayerAction('feed_standard');
-      if (pointer.rightButtonDown()) this.simulation.applyPlayerAction('clean_cage');
+      if (pointer.leftButtonDown()) this.handleFeedAction();
+      if (pointer.rightButtonDown()) this.handleCleanAction();
     });
 
     this.events.on('action:feed', this.handleFeedAction, this);
@@ -336,10 +336,12 @@ export class CageScene extends Phaser.Scene {
   }
 
   private handleFeedAction(): void {
+    if ((this.simulation.getState().inventory.food_standard ?? 0) <= 0) return;
     this.sound.play('hamster-squeak', { volume: 0.45 });
     this.simulation.applyPlayerAction('feed_standard');
     this.playTemporaryAnimation('hamster-eat', 900);
     this.animateReaction(0x7df18f);
+    this.refreshStatus();
   }
 
   private handleCleanAction(): void {
@@ -347,6 +349,7 @@ export class CageScene extends Phaser.Scene {
     this.simulation.applyPlayerAction('clean_cage');
     this.playTemporaryAnimation('hamster-happy', 450);
     this.animateReaction(0x7ad9ff);
+    this.refreshStatus();
   }
 
   private handleFeedSweetAction(): void {
@@ -355,6 +358,7 @@ export class CageScene extends Phaser.Scene {
     this.simulation.applyPlayerAction('feed_sweet');
     this.playTemporaryAnimation('hamster-eat', 1050);
     this.animateReaction(0xc184ff);
+    this.refreshStatus();
   }
 
   private handleRefillWaterAction(): void {
@@ -362,6 +366,7 @@ export class CageScene extends Phaser.Scene {
     this.simulation.applyPlayerAction('refill_water');
     this.playTemporaryAnimation('hamster-happy', 500);
     this.animateReaction(0x86d9ff);
+    this.refreshStatus();
   }
 
   private handleHandleAction(): void {
@@ -370,6 +375,7 @@ export class CageScene extends Phaser.Scene {
     const trust = this.simulation.getState().hamster.stats.trust;
     this.playTemporaryAnimation(trust >= 50 ? 'hamster-happy' : 'hamster-stress', 700);
     this.animateReaction(0xffd087);
+    this.refreshStatus();
   }
 
 
