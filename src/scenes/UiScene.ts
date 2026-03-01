@@ -4,6 +4,7 @@ import { LayeredIconMenu, type LayeredMenuNode } from '../game/ui/LayeredIconMen
 const ROUTE_EVENT = 'ui:navigate';
 const DEBUG_TEXTURE_KEY = 'debug-pane-texture';
 const MAX_LOG_LINES = 120;
+const DEFAULT_COMMAND_PLACEHOLDER = 'Type JavaScript and press Enter';
 
 type ConsoleMethod = 'log' | 'info' | 'warn' | 'error' | 'debug';
 
@@ -17,6 +18,13 @@ export class UiScene extends Phaser.Scene {
   private debugPaneBackground?: Phaser.GameObjects.Rectangle;
   private debugPaneTexture?: Phaser.GameObjects.TileSprite;
   private debugPaneText?: Phaser.GameObjects.Text;
+  private debugCommandInputContainer?: Phaser.GameObjects.Container;
+  private debugCommandInputBackground?: Phaser.GameObjects.Rectangle;
+  private debugCommandInputText?: Phaser.GameObjects.Text;
+  private debugCommandSubmitButton?: Phaser.GameObjects.Container;
+
+  private debugCommandValue = '';
+  private debugCommandHiddenInput?: HTMLInputElement;
 
   private isDebugPaneExpanded = false;
   private debugPaneHeight = 0;
@@ -59,6 +67,12 @@ export class UiScene extends Phaser.Scene {
     this.debugButtonContainer = undefined;
     this.debugPaneContainer?.destroy();
     this.debugPaneContainer = undefined;
+    this.debugCommandInputContainer = undefined;
+    this.debugCommandInputBackground = undefined;
+    this.debugCommandInputText = undefined;
+    this.debugCommandSubmitButton = undefined;
+
+    this.destroyHiddenCommandInput();
   }
 
   private createDebugMenu(): void {
@@ -101,9 +115,56 @@ export class UiScene extends Phaser.Scene {
       .setPadding(14, 18, 14, 14)
       .setWordWrapWidth(Math.max(200, width - 48));
 
-    this.debugPaneContainer = this.add.container(width / 2, 28, [this.debugPaneBackground, this.debugPaneTexture, this.debugPaneText]);
+    this.debugCommandInputBackground = this.add
+      .rectangle(0, 0, Math.max(220, width - 32), 42, 0x0e2038, 0.88)
+      .setOrigin(0.5)
+      .setStrokeStyle(1, 0x74c6ff, 0.8);
+    this.debugCommandInputText = this.add
+      .text(0, 0, DEFAULT_COMMAND_PLACEHOLDER, {
+        fontFamily: 'monospace',
+        fontSize: '13px',
+        color: '#8bb4d6',
+      })
+      .setOrigin(0, 0.5);
+
+    const submitBackground = this.add
+      .rectangle(0, 0, 62, 30, 0x16335c, 0.95)
+      .setOrigin(0.5)
+      .setStrokeStyle(1, 0x74c6ff, 0.8);
+    const submitLabel = this.add
+      .text(0, 0, 'Run', {
+        fontFamily: 'monospace',
+        fontSize: '13px',
+        color: '#d7efff',
+      })
+      .setOrigin(0.5);
+
+    this.debugCommandSubmitButton = this.add.container(0, 0, [submitBackground, submitLabel]);
+    this.debugCommandSubmitButton
+      .setSize(62, 30)
+      .setInteractive({ useHandCursor: true })
+      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => this.executeCommandFromInput());
+
+    this.debugCommandInputContainer = this.add.container(0, 0, [
+      this.debugCommandInputBackground,
+      this.debugCommandInputText,
+      this.debugCommandSubmitButton,
+    ]);
+    this.debugCommandInputContainer
+      .setSize(Math.max(220, width - 32), 42)
+      .setInteractive({ useHandCursor: true })
+      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => this.focusHiddenCommandInput());
+
+    this.debugPaneContainer = this.add.container(width / 2, 28, [
+      this.debugPaneBackground,
+      this.debugPaneTexture,
+      this.debugPaneText,
+      this.debugCommandInputContainer,
+    ]);
     this.debugPaneContainer.setDepth(1000).setScrollFactor(0).setVisible(false);
     this.refreshDebugPaneLayout();
+    this.setupHiddenCommandInput();
+    this.refreshDebugCommandText();
   }
 
   private createDebugTexture(): void {
@@ -161,7 +222,17 @@ export class UiScene extends Phaser.Scene {
   }
 
   private refreshDebugPaneLayout(): void {
-    if (!this.debugButtonContainer || !this.debugPaneContainer || !this.debugPaneBackground || !this.debugPaneTexture || !this.debugPaneText) {
+    if (
+      !this.debugButtonContainer ||
+      !this.debugPaneContainer ||
+      !this.debugPaneBackground ||
+      !this.debugPaneTexture ||
+      !this.debugPaneText ||
+      !this.debugCommandInputContainer ||
+      !this.debugCommandInputBackground ||
+      !this.debugCommandInputText ||
+      !this.debugCommandSubmitButton
+    ) {
       return;
     }
 
@@ -175,7 +246,15 @@ export class UiScene extends Phaser.Scene {
     this.debugPaneText
       .setWordWrapWidth(Math.max(200, width - 48))
       .setPosition(0, 0)
-      .setCrop(0, 0, width, Math.max(0, this.debugPaneHeight - 8));
+      .setCrop(0, 0, width, Math.max(0, this.debugPaneHeight - 68));
+
+    const inputWidth = Math.max(220, width - 32);
+    this.debugCommandInputContainer.setSize(inputWidth, 42);
+    this.debugCommandInputBackground.setSize(inputWidth, 42);
+    this.debugCommandInputContainer.setPosition(0, Math.max(24, this.debugPaneHeight - 30));
+
+    this.debugCommandSubmitButton.setPosition(inputWidth / 2 - 40, 0);
+    this.debugCommandInputText.setPosition(-inputWidth / 2 + 12, 0);
 
     this.refreshDebugText();
   }
@@ -210,6 +289,108 @@ export class UiScene extends Phaser.Scene {
     };
 
     this.appendLog('[debug] Debug console initialized.');
+    this.appendLog('[debug] Tap the command field, then press Enter (or Run) to execute JavaScript.');
+  }
+
+  private setupHiddenCommandInput(): void {
+    if (typeof document === 'undefined' || this.debugCommandHiddenInput) {
+      return;
+    }
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.autocomplete = 'off';
+    input.autocapitalize = 'off';
+    input.spellcheck = false;
+    input.style.position = 'fixed';
+    input.style.left = '-10000px';
+    input.style.top = '0';
+    input.style.opacity = '0';
+    input.style.pointerEvents = 'none';
+
+    input.addEventListener('input', this.handleHiddenCommandInput);
+    input.addEventListener('keydown', this.handleHiddenCommandKeyDown);
+    document.body.appendChild(input);
+    this.debugCommandHiddenInput = input;
+  }
+
+  private destroyHiddenCommandInput(): void {
+    if (!this.debugCommandHiddenInput) {
+      return;
+    }
+
+    this.debugCommandHiddenInput.removeEventListener('input', this.handleHiddenCommandInput);
+    this.debugCommandHiddenInput.removeEventListener('keydown', this.handleHiddenCommandKeyDown);
+    this.debugCommandHiddenInput.remove();
+    this.debugCommandHiddenInput = undefined;
+  }
+
+  private readonly handleHiddenCommandInput = (): void => {
+    if (!this.debugCommandHiddenInput) {
+      return;
+    }
+
+    this.debugCommandValue = this.debugCommandHiddenInput.value;
+    this.refreshDebugCommandText();
+  };
+
+  private readonly handleHiddenCommandKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== 'Enter') {
+      return;
+    }
+
+    event.preventDefault();
+    this.executeCommandFromInput();
+  };
+
+  private focusHiddenCommandInput(): void {
+    this.debugCommandHiddenInput?.focus();
+  }
+
+  private executeCommandFromInput(): void {
+    const trimmedCommand = this.debugCommandValue.trim();
+    if (!trimmedCommand) {
+      this.appendLog('[command] Empty command.');
+      return;
+    }
+
+    this.appendLog(`> ${trimmedCommand}`);
+
+    try {
+      const result = this.executeDebugCommand(trimmedCommand);
+      this.appendLog(`[result] ${this.stringifyArg(result)}`);
+    } catch (error) {
+      this.appendLog(`[command-error] ${this.stringifyArg(error)}`);
+    }
+
+    this.debugCommandValue = '';
+    if (this.debugCommandHiddenInput) {
+      this.debugCommandHiddenInput.value = '';
+    }
+    this.refreshDebugCommandText();
+  }
+
+  private refreshDebugCommandText(): void {
+    if (!this.debugCommandInputText) {
+      return;
+    }
+
+    if (this.debugCommandValue.trim().length === 0) {
+      this.debugCommandInputText.setText(DEFAULT_COMMAND_PLACEHOLDER).setColor('#8bb4d6');
+      return;
+    }
+
+    this.debugCommandInputText.setText(this.debugCommandValue).setColor('#d7efff');
+  }
+
+  private executeDebugCommand(command: string): unknown {
+    try {
+      const expressionRunner = new Function('scene', 'game', 'Phaser', `return (${command});`);
+      return expressionRunner(this, this.game, Phaser);
+    } catch {
+      const statementRunner = new Function('scene', 'game', 'Phaser', command);
+      return statementRunner(this, this.game, Phaser);
+    }
   }
 
   private restoreConsoleOutput(): void {
