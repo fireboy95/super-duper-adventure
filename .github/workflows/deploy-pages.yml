@@ -25,13 +25,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          lfs: true
+          lfs: false
           fetch-depth: 0
 
-      - name: Ensure LFS objects are present
+      - name: Ensure LFS objects needed for build are present
+        env:
+          GIT_LFS_SKIP_DOWNLOAD_ERRORS: 1
         run: |
           git lfs version
-          git lfs pull
+          # Avoid failing the workflow when historical/missing remote LFS objects exist.
+          # We only need objects required by the checked-out commit, excluding known-missing legacy audio.
+          git lfs pull --exclude="public/assets/audio/move-blip.wav"
 
       - name: Setup Node
         uses: actions/setup-node@v4
