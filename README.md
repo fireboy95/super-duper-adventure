@@ -1,21 +1,28 @@
-# Outpost Caretaker
+# Phaser 2D Starter
 
-A compact Phaser 3 simulation game where you keep a small companion habitat stable during long station shifts.
+A clean starter repository for building a 2D game with Phaser 3, powered by Vite + TypeScript.
 
-## Current scope
+## Quick start
 
-- Real-time stat simulation for fuel, hydration, stamina, integrity, habitat condition, and morale.
-- Menu flow with resume/new-shift entry points.
-- Core actions (feed, refill water, handle, clean) plus contextual dialogue and event triggers.
-- HUD and debug overlays for rapid tuning.
+```bash
+npm install
+npm run dev
+```
+
+Then open the local URL printed by Vite.
 
 ## Scripts
 
-- `npm install`
-- `npm run dev`
-- `npm run check`
-- `npm run build`
+- `npm run dev` — Start local development server.
+- `npm run check` — Run TypeScript type checks.
+- `npm run build` — Build production files into `dist/`.
 
-## Notes
+## GitHub Pages deployment
 
-- Legacy hamster-specific reference material remains archived in `archive/hamster-keeper-98/`.
+This repo includes a GitHub Actions workflow at `.github/workflows/deploy-pages.yml` that:
+
+1. installs dependencies,
+2. builds the project, and
+3. deploys `dist/` to GitHub Pages.
+
+The Vite config uses the GitHub Actions-provided repository name when available, so Pages URLs resolve correctly for project sites.
