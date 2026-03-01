@@ -49,12 +49,34 @@ export class UiScene extends Phaser.Scene {
 
   create(): void {
     this.layeredMenu = new LayeredIconMenu(this, this.buildMenuDefinition());
-    this.createDebugMenu();
-    this.captureConsoleOutput();
+    this.initializeDebugTools();
 
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
     this.bindViewportListeners();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
+  }
+
+  private initializeDebugTools(): void {
+    try {
+      this.createDebugMenu();
+      this.captureConsoleOutput();
+    } catch (error) {
+      console.error('Debug UI initialization failed. Continuing without debug tools.', error);
+      this.restoreConsoleOutput();
+      this.destroyHiddenCommandInput();
+      this.debugButtonContainer?.destroy();
+      this.debugButtonContainer = undefined;
+      this.debugPaneContainer?.destroy();
+      this.debugPaneContainer = undefined;
+      this.debugPaneScrollHitArea = undefined;
+      this.debugPaneText = undefined;
+      this.debugCommandInputContainer = undefined;
+      this.debugCommandInputBackground = undefined;
+      this.debugCommandInputText = undefined;
+      this.debugCommandSubmitButton = undefined;
+      this.input.off(Phaser.Input.Events.POINTER_WHEEL, this.handleDebugPaneWheel, this);
+      this.input.off(Phaser.Input.Events.POINTER_UP, this.handleGlobalPointerUp, this);
+    }
   }
 
   update(_: number, delta: number): void {
@@ -359,6 +381,10 @@ export class UiScene extends Phaser.Scene {
   }
 
   private captureConsoleOutput(): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     CONSOLE_METHODS.forEach((method) => {
       const original = console[method].bind(console);
       this.originalConsole[method] = original;
