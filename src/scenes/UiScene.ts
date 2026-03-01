@@ -8,6 +8,8 @@ const DEFAULT_COMMAND_PLACEHOLDER = 'Type JavaScript and press Enter';
 
 type ConsoleMethod = 'log' | 'info' | 'warn' | 'error' | 'debug';
 
+const CONSOLE_METHODS: readonly ConsoleMethod[] = ['log', 'info', 'warn', 'error', 'debug'];
+
 export class UiScene extends Phaser.Scene {
   private layeredMenu?: LayeredIconMenu;
 
@@ -260,7 +262,7 @@ export class UiScene extends Phaser.Scene {
   }
 
   private captureConsoleOutput(): void {
-    (['log', 'info', 'warn', 'error', 'debug'] as const).forEach((method) => {
+    CONSOLE_METHODS.forEach((method) => {
       const original = console[method].bind(console);
       this.originalConsole[method] = original;
 
@@ -290,6 +292,7 @@ export class UiScene extends Phaser.Scene {
 
     this.appendLog('[debug] Debug console initialized.');
     this.appendLog('[debug] Tap the command field, then press Enter (or Run) to execute JavaScript.');
+    this.appendLog('[debug] Helpers available: log(...), info(...), warn(...), error(...), debug(...).');
   }
 
   private setupHiddenCommandInput(): void {
@@ -358,7 +361,19 @@ export class UiScene extends Phaser.Scene {
 
     try {
       const result = this.executeDebugCommand(trimmedCommand);
-      this.appendLog(`[result] ${this.stringifyArg(result)}`);
+
+      if (result instanceof Promise) {
+        this.appendLog('[result] <Promise pending>');
+        void result
+          .then((resolvedValue) => {
+            this.appendLog(`[result:resolved] ${this.stringifyArg(resolvedValue)}`);
+          })
+          .catch((error) => {
+            this.appendLog(`[result:rejected] ${this.stringifyArg(error)}`);
+          });
+      } else {
+        this.appendLog(`[result] ${this.stringifyArg(result)}`);
+      }
     } catch (error) {
       this.appendLog(`[command-error] ${this.stringifyArg(error)}`);
     }
@@ -384,17 +399,43 @@ export class UiScene extends Phaser.Scene {
   }
 
   private executeDebugCommand(command: string): unknown {
+    const runWithHelpers = (body: string): unknown => {
+      const runner = new Function(
+        'scene',
+        'game',
+        'Phaser',
+        'consoleRef',
+        'log',
+        'info',
+        'warn',
+        'error',
+        'debug',
+        body,
+      );
+
+      return runner(
+        this,
+        this.game,
+        Phaser,
+        console,
+        console.log.bind(console),
+        console.info.bind(console),
+        console.warn.bind(console),
+        console.error.bind(console),
+        console.debug.bind(console),
+      );
+    };
+
     try {
-      const expressionRunner = new Function('scene', 'game', 'Phaser', `return (${command});`);
-      return expressionRunner(this, this.game, Phaser);
+      return runWithHelpers(`const console = consoleRef; return (${command});`);
     } catch {
-      const statementRunner = new Function('scene', 'game', 'Phaser', command);
-      return statementRunner(this, this.game, Phaser);
+      return runWithHelpers(`const console = consoleRef; ${command}`);
     }
   }
 
+
   private restoreConsoleOutput(): void {
-    (['log', 'info', 'warn', 'error', 'debug'] as const).forEach((method) => {
+    CONSOLE_METHODS.forEach((method) => {
       const original = this.originalConsole[method];
       if (original) {
         console[method] = original;
@@ -419,7 +460,12 @@ export class UiScene extends Phaser.Scene {
       return;
     }
 
-    this.debugPaneText.setText(this.debugLogLines.join('\n'));
+    const availableLogAreaHeight = Math.max(0, this.debugPaneHeight - 68);
+    const estimatedLineHeight = 18;
+    const visibleLineCount = Math.max(1, Math.floor(availableLogAreaHeight / estimatedLineHeight));
+    const visibleLines = this.debugLogLines.slice(-visibleLineCount);
+
+    this.debugPaneText.setText(visibleLines.join('\n'));
   }
 
   private formatConsoleArgs(args: unknown[]): string {
