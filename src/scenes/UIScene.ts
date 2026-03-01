@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { DialogEntry, DialogOption, DialogueSystem } from '../systems/DialogueSystem';
 import { DebugConsoleEntry, debugConsole } from '../systems/DebugConsole';
+import { SafeAreaInsets, UI_SAFE_AREA_EVENT } from './layoutContract';
 
 type TopMenuKey = 'feed' | 'care' | 'social';
 
@@ -689,9 +690,14 @@ export class UIScene extends Phaser.Scene {
     });
 
     this.controlsAreaHeight = subRows * (subButtonHeight + subRowGap) + (hasTopButtons ? topButtonHeight + 24 : 14);
+    const hudHeight = isNarrow ? 68 : 52;
+    const safeAreaInsets: SafeAreaInsets = {
+      topInset: topPadding + hudHeight,
+      bottomInset: this.controlsAreaHeight,
+    };
+    this.game.events.emit(UI_SAFE_AREA_EVENT, safeAreaInsets);
 
     if (this.hudBackground) {
-      const hudHeight = isNarrow ? 68 : 52;
       this.hudBackground.setPosition(width / 2, topPadding + hudHeight / 2);
       this.hudBackground.setSize(width, hudHeight);
     }
