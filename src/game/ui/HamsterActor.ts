@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
+import { type HamsterMood } from './hamsterMoodMap';
 
-const HAMSTER_STATES = ['idle', 'run', 'sleep', 'eat', 'wheel'] as const;
+const HAMSTER_STATES = ['idle', 'run', 'sleep', 'eat', 'wheel', 'groom'] as const;
 
 type HamsterState = (typeof HAMSTER_STATES)[number];
 type FacingDirection = 'left' | 'right';
@@ -11,6 +12,7 @@ export class HamsterActor {
   private readonly scene: Phaser.Scene;
   private readonly sprite: Phaser.GameObjects.Sprite;
   private currentState?: HamsterState;
+  private currentMood: HamsterMood = 'calm';
   private currentFacing: FacingDirection = 'right';
   private moveTween?: Phaser.Tweens.Tween;
 
@@ -48,6 +50,16 @@ export class HamsterActor {
 
     this.currentState = nextState;
     this.sprite.play(`hamster-${nextState}`, true);
+    this.applyMoodAnimationBias();
+  }
+
+  public setMood(mood: HamsterMood): void {
+    if (this.currentMood === mood) {
+      return;
+    }
+
+    this.currentMood = mood;
+    this.applyMoodAnimationBias();
   }
 
   public face(direction: FacingDirection): void {
@@ -136,9 +148,30 @@ export class HamsterActor {
         return 8;
       case 'sleep':
         return 3;
+      case 'groom':
+        return 6;
       case 'idle':
       default:
         return 5;
+    }
+  }
+
+  private applyMoodAnimationBias(): void {
+    const state = this.currentState ?? 'idle';
+    this.sprite.anims.timeScale = this.animationTimeScaleForMood(state);
+  }
+
+  private animationTimeScaleForMood(state: HamsterState): number {
+    switch (this.currentMood) {
+      case 'excited':
+        return state === 'sleep' ? 0.95 : 1.25;
+      case 'sleepy':
+        return state === 'sleep' ? 1 : 0.78;
+      case 'curious':
+        return state === 'run' || state === 'wheel' ? 1.1 : 1.02;
+      case 'calm':
+      default:
+        return state === 'sleep' ? 1.1 : 0.9;
     }
   }
 }
