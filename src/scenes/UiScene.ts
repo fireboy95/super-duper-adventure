@@ -41,6 +41,8 @@ export class UiScene extends Phaser.Scene {
   private debugPaneInteractionShield?: Phaser.GameObjects.Zone;
   private debugPaneScrollHitArea?: Phaser.GameObjects.Zone;
   private debugPaneText?: Phaser.GameObjects.Text;
+  private debugPaneScrollbarTrack?: Phaser.GameObjects.Rectangle;
+  private debugPaneScrollbarThumb?: Phaser.GameObjects.Rectangle;
   private debugCommandInputContainer?: Phaser.GameObjects.Container;
   private debugCommandInputBackground?: Phaser.GameObjects.Rectangle;
   private debugCommandInputText?: Phaser.GameObjects.Text;
@@ -95,6 +97,8 @@ export class UiScene extends Phaser.Scene {
       this.debugPaneInteractionShield = undefined;
       this.debugPaneScrollHitArea = undefined;
       this.debugPaneText = undefined;
+      this.debugPaneScrollbarTrack = undefined;
+      this.debugPaneScrollbarThumb = undefined;
       this.debugCommandInputContainer = undefined;
       this.debugCommandInputBackground = undefined;
       this.debugCommandInputText = undefined;
@@ -132,6 +136,8 @@ export class UiScene extends Phaser.Scene {
     this.debugPaneContainer = undefined;
     this.debugPaneInteractionShield = undefined;
     this.debugPaneScrollHitArea = undefined;
+    this.debugPaneScrollbarTrack = undefined;
+    this.debugPaneScrollbarThumb = undefined;
     this.debugCommandInputContainer = undefined;
     this.debugCommandInputBackground = undefined;
     this.debugCommandInputText = undefined;
@@ -199,6 +205,15 @@ export class UiScene extends Phaser.Scene {
       .setOrigin(0, 0)
       .setPadding(14, 18, 14, 14)
       .setWordWrapWidth(Math.max(200, width - 48));
+
+    this.debugPaneScrollbarTrack = this.add
+      .rectangle(0, 0, 4, 0, 0xb8e5ff, 0.2)
+      .setOrigin(0.5, 0)
+      .setVisible(false);
+    this.debugPaneScrollbarThumb = this.add
+      .rectangle(0, 0, 4, 24, 0x8ddbff, 0.9)
+      .setOrigin(0.5, 0)
+      .setVisible(false);
 
     this.debugPaneScrollHitArea
       .setInteractive()
@@ -284,6 +299,8 @@ export class UiScene extends Phaser.Scene {
       this.debugPaneInteractionShield,
       this.debugPaneScrollHitArea,
       this.debugPaneText,
+      this.debugPaneScrollbarTrack,
+      this.debugPaneScrollbarThumb,
       this.debugCommandInputContainer,
     ]);
     this.debugPaneContainer.setDepth(1000).setScrollFactor(0).setVisible(false);
@@ -417,6 +434,8 @@ export class UiScene extends Phaser.Scene {
       !this.debugPaneInteractionShield ||
       !this.debugPaneScrollHitArea ||
       !this.debugPaneText ||
+      !this.debugPaneScrollbarTrack ||
+      !this.debugPaneScrollbarThumb ||
       !this.debugCommandInputContainer ||
       !this.debugCommandInputBackground ||
       !this.debugCommandInputText ||
@@ -438,7 +457,7 @@ export class UiScene extends Phaser.Scene {
     if (this.debugPaneInteractionShield.input?.hitArea && 'setTo' in this.debugPaneInteractionShield.input.hitArea) {
       this.debugPaneInteractionShield.input.hitArea.setTo(-width / 2, 0, width, this.debugPaneHeight);
     }
-    const textAreaWidth = Math.max(200, width - 48);
+    const textAreaWidth = Math.max(200, width - 58);
     const textAreaHeight = Math.max(0, this.debugPaneHeight - 68);
     this.debugPaneScrollHitArea
       .setSize(textAreaWidth, textAreaHeight)
@@ -451,6 +470,10 @@ export class UiScene extends Phaser.Scene {
       .setFixedSize(textAreaWidth, textAreaHeight)
       .setPosition(-width / 2 + 12, 0)
       .setCrop(0, 0, textAreaWidth, textAreaHeight);
+
+    this.debugPaneScrollbarTrack
+      .setPosition(width / 2 - 14, 0)
+      .setSize(4, textAreaHeight);
 
     const inputWidth = this.getDebugCommandRowWidth(width);
     this.debugCommandInputContainer.setSize(inputWidth, 42);
@@ -827,7 +850,7 @@ export class UiScene extends Phaser.Scene {
   }
 
   private refreshDebugText(): void {
-    if (!this.debugPaneText) {
+    if (!this.debugPaneText || !this.debugPaneScrollbarTrack || !this.debugPaneScrollbarThumb) {
       return;
     }
 
@@ -836,8 +859,24 @@ export class UiScene extends Phaser.Scene {
     const maxOffset = this.getMaxDebugLogOffset(visibleLineCount, flattenedLines.length);
     this.debugLogScrollOffset = Phaser.Math.Clamp(this.debugLogScrollOffset, 0, maxOffset);
     const visibleLines = flattenedLines.slice(this.debugLogScrollOffset, this.debugLogScrollOffset + visibleLineCount);
+    const hasScrollableContent = maxOffset > 0;
 
     this.debugPaneText.setText(visibleLines.map((line) => line.text).join('\n'));
+
+    this.debugPaneScrollbarTrack.setVisible(hasScrollableContent);
+    this.debugPaneScrollbarThumb.setVisible(hasScrollableContent);
+
+    if (!hasScrollableContent) {
+      return;
+    }
+
+    const trackHeight = this.debugPaneScrollbarTrack.displayHeight;
+    const thumbHeight = Phaser.Math.Clamp((visibleLineCount / Math.max(flattenedLines.length, 1)) * trackHeight, 20, trackHeight);
+    const scrollProgress = maxOffset <= 0 ? 0 : this.debugLogScrollOffset / maxOffset;
+
+    this.debugPaneScrollbarThumb
+      .setSize(4, thumbHeight)
+      .setPosition(this.debugPaneScrollbarTrack.x, this.debugPaneScrollbarTrack.y + (trackHeight - thumbHeight) * scrollProgress);
   }
 
   private toggleLongLogLineExpansionAtLocalY(localY: number): void {
@@ -897,7 +936,7 @@ export class UiScene extends Phaser.Scene {
 
     const estimatedLineHeight = this.getDebugLogLineHeight();
     const movedLines = Math.trunc((pointer.y - this.dragStartY) / estimatedLineHeight);
-    this.setDebugLogScrollOffset(this.dragStartOffset + movedLines);
+    this.setDebugLogScrollOffset(this.dragStartOffset - movedLines);
   }
 
   private readonly handleGlobalPointerMove = (pointer: Phaser.Input.Pointer): void => {
