@@ -10,6 +10,12 @@ const DEBUG_SCROLL_FOCUS_SUPPRESSION_MS = 180;
 
 type ConsoleMethod = 'log' | 'info' | 'warn' | 'error' | 'debug';
 
+type DebugCommandExecutionResult =
+  | { ok: true; value: unknown }
+  | { ok: false; error: unknown };
+
+type DebugCommandRunner = (...helpers: unknown[]) => unknown;
+
 const CONSOLE_METHODS: readonly ConsoleMethod[] = ['log', 'info', 'warn', 'error', 'debug'];
 
 export class UiScene extends Phaser.Scene {
@@ -628,7 +634,14 @@ export class UiScene extends Phaser.Scene {
     try {
       this.appendLog(`> ${trimmedCommand}`);
 
-      const result = this.executeDebugCommand(trimmedCommand);
+      const execution = this.executeDebugCommand(trimmedCommand);
+
+      if (!execution.ok) {
+        this.appendLog(`[error] ${this.stringifyArg(execution.error)}`);
+        return;
+      }
+
+      const { value: result } = execution;
 
       if (result instanceof Promise) {
         this.appendLog('[result] <Promise pending>');
@@ -642,8 +655,6 @@ export class UiScene extends Phaser.Scene {
       } else {
         this.appendLog(`[result] ${this.stringifyArg(result)}`);
       }
-    } catch (error) {
-      this.appendLog(`[error] ${this.stringifyArg(error)}`);
     } finally {
       this.debugCommandValue = '';
       if (this.debugCommandHiddenInput) {
@@ -671,8 +682,39 @@ export class UiScene extends Phaser.Scene {
     this.debugCommandInputText.setText(this.debugCommandValue).setColor('#d7efff');
   }
 
-  private executeDebugCommand(command: string): unknown {
-    const runWithHelpers = (body: string): unknown => {
+  private executeDebugCommand(command: string): DebugCommandExecutionResult {
+    const expressionBody = `const console = consoleRef; return (${command});`;
+    const statementBody = `const console = consoleRef; ${command}`;
+
+    const expressionCompile = this.compileDebugCommandRunner(expressionBody);
+    const compiledRunner = expressionCompile.ok ? expressionCompile : this.compileDebugCommandRunner(statementBody);
+
+    if (!compiledRunner.ok) {
+      return { ok: false, error: compiledRunner.error };
+    }
+
+    try {
+      return {
+        ok: true,
+        value: compiledRunner.runner(
+          this,
+          this.game,
+          Phaser,
+          console,
+          console.log.bind(console),
+          console.info.bind(console),
+          console.warn.bind(console),
+          console.error.bind(console),
+          console.debug.bind(console),
+        ),
+      };
+    } catch (error) {
+      return { ok: false, error };
+    }
+  }
+
+  private compileDebugCommandRunner(body: string): { ok: true; runner: DebugCommandRunner } | { ok: false; error: unknown } {
+    try {
       const runner = new Function(
         'scene',
         'game',
@@ -684,29 +726,11 @@ export class UiScene extends Phaser.Scene {
         'error',
         'debug',
         body,
-      );
+      ) as DebugCommandRunner;
 
-      return runner(
-        this,
-        this.game,
-        Phaser,
-        console,
-        console.log.bind(console),
-        console.info.bind(console),
-        console.warn.bind(console),
-        console.error.bind(console),
-        console.debug.bind(console),
-      );
-    };
-
-    try {
-      return runWithHelpers(`const console = consoleRef; return (${command});`);
+      return { ok: true, runner };
     } catch (error) {
-      if (!(error instanceof SyntaxError)) {
-        throw error;
-      }
-
-      return runWithHelpers(`const console = consoleRef; ${command}`);
+      return { ok: false, error };
     }
   }
 
