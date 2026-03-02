@@ -7,6 +7,7 @@ import { HamsterBehaviorDirector } from '../game/systems/HamsterBehaviorDirector
 import { CageView } from '../game/ui/CageView';
 import { HamsterActor } from '../game/ui/HamsterActor';
 import { PromptDialogueOverlay } from '../game/ui/PromptDialogueOverlay';
+import { getChoiceMoodModifier, getKeywordMoodModifier } from '../game/ui/hamsterMoodMap';
 import { UI_INPUT_BLOCKED_EVENT } from './UiScene';
 
 export class MainScene extends Phaser.Scene {
@@ -152,6 +153,10 @@ export class MainScene extends Phaser.Scene {
     }
 
     this.promptEngine.selectChoice(choice.id, this.time.now);
+    const moodModifier = getChoiceMoodModifier(choice.id);
+    if (moodModifier) {
+      this.hamsterBehaviorDirector?.setMood(moodModifier.mood, moodModifier.durationMs, this.time.now);
+    }
     this.refreshPromptView();
   }
 
@@ -162,6 +167,10 @@ export class MainScene extends Phaser.Scene {
 
     this.audioSystem?.unlock();
     this.promptEngine?.inspectKeyword(keyword.id);
+    const moodModifier = getKeywordMoodModifier(keyword.id);
+    if (moodModifier) {
+      this.hamsterBehaviorDirector?.setMood(moodModifier.mood, moodModifier.durationMs, this.time.now);
+    }
     this.refreshPromptView();
   }
 

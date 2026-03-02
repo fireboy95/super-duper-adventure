@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
+import { type HamsterMood } from '../ui/hamsterMoodMap';
 import { CageView } from '../ui/CageView';
 import { HamsterActor } from '../ui/HamsterActor';
 
-const BEHAVIOR_NAMES = ['wander', 'run-wheel', 'eat', 'drink', 'sleep', 'hide-in-tunnel'] as const;
+const BEHAVIOR_NAMES = ['wander', 'run-wheel', 'eat', 'drink', 'sleep', 'groom', 'hide-in-tunnel'] as const;
 
 export type HamsterBehaviorName = (typeof BEHAVIOR_NAMES)[number];
 
@@ -49,8 +50,37 @@ export class HamsterBehaviorDirector {
   private readonly events = new Phaser.Events.EventEmitter();
   private readonly cooldownsUntil = new Map<HamsterBehaviorName, number>();
   private readonly rules: Record<HamsterBehaviorName, BehaviorRule>;
+  private readonly moodWeightModifiers: Record<HamsterMood, Partial<Record<HamsterBehaviorName, number>>> = {
+    calm: {
+      sleep: 2.2,
+      groom: 2.4,
+      eat: 1.2,
+      'run-wheel': 0.6,
+      wander: 0.9,
+    },
+    excited: {
+      'run-wheel': 2.5,
+      wander: 1.4,
+      sleep: 0.35,
+      groom: 0.5,
+    },
+    sleepy: {
+      sleep: 3,
+      groom: 0.7,
+      wander: 0.7,
+      'run-wheel': 0.5,
+    },
+    curious: {
+      wander: 1.5,
+      'hide-in-tunnel': 1.6,
+      drink: 1.15,
+      groom: 0.85,
+    },
+  };
 
   private lastBehavior?: HamsterBehaviorName;
+  private mood: HamsterMood = 'calm';
+  private moodUntil = 0;
 
   constructor(hamster: HamsterActor, cageView: CageView, options: HamsterBehaviorDirectorOptions = {}) {
     this.hamster = hamster;
@@ -90,6 +120,11 @@ export class HamsterBehaviorDirector {
         guard: () => (this.lastBehavior === 'run-wheel' ? 'cannot-sleep-after-wheel' : undefined),
         run: () => this.hamster.setState('sleep'),
       },
+      groom: {
+        weight: 1.5,
+        cooldownMs: 3600,
+        run: () => this.runGroom(),
+      },
       'hide-in-tunnel': {
         weight: 2,
         cooldownMs: 4500,
@@ -98,7 +133,14 @@ export class HamsterBehaviorDirector {
     };
   }
 
+  public setMood(mood: HamsterMood, durationMs: number, now: number = Date.now()): void {
+    this.mood = mood;
+    this.moodUntil = now + Math.max(0, durationMs);
+    this.hamster.setMood(mood);
+  }
+
   public tick(now: number): void {
+    this.refreshMood(now);
     const behavior = this.pickBehavior(now);
     if (!behavior) {
       return;
@@ -108,6 +150,7 @@ export class HamsterBehaviorDirector {
   }
 
   public triggerBehavior(behavior: HamsterBehaviorName, now: number = Date.now()): boolean {
+    this.refreshMood(now);
     const blockReason = this.getBlockReason(behavior, now);
     if (blockReason) {
       this.events.emit('blocked-behavior', { behavior, trigger: 'external', now, reason: blockReason } satisfies HamsterBehaviorEventPayload);
@@ -130,22 +173,27 @@ export class HamsterBehaviorDirector {
     this.events.removeAllListeners();
     this.cooldownsUntil.clear();
     this.lastBehavior = undefined;
+    this.mood = 'calm';
+    this.moodUntil = 0;
   }
 
   private pickBehavior(now: number): HamsterBehaviorName | undefined {
     const available = BEHAVIOR_NAMES
-      .map((name) => ({ name, rule: this.rules[name] }))
-      .filter(({ name }) => !this.getBlockReason(name, now));
+      .map((name) => ({
+        name,
+        weight: this.getWeightedBehaviorWeight(name),
+      }))
+      .filter(({ name, weight }) => weight > 0 && !this.getBlockReason(name, now));
 
     if (available.length === 0) {
       return undefined;
     }
 
-    const totalWeight = available.reduce((sum, candidate) => sum + candidate.rule.weight, 0);
+    const totalWeight = available.reduce((sum, candidate) => sum + candidate.weight, 0);
     let roll = this.random() * totalWeight;
 
     for (const candidate of available) {
-      roll -= candidate.rule.weight;
+      roll -= candidate.weight;
       if (roll <= 0) {
         return candidate.name;
       }
@@ -188,12 +236,16 @@ export class HamsterBehaviorDirector {
     this.moveHamsterNearProp('water-bottle', () => this.hamster.setState('idle'));
   }
 
+  private runGroom(): void {
+    this.moveHamsterNearProp('hideout', () => this.hamster.setState('groom'));
+  }
+
   private runHideInTunnel(): void {
     this.moveHamsterNearProp('tunnel', () => this.hamster.setState('run'));
   }
 
   private moveHamsterNearProp(propId: string, onArrive: () => void): void {
-    const prop = this.cageView.getProp(propId);
+    const prop = this.cageView.getProp(this.getPreferredPropId(propId));
     if (!prop || !('x' in prop)) {
       onArrive();
       return;
@@ -204,5 +256,36 @@ export class HamsterBehaviorDirector {
     const duration = Phaser.Math.Clamp(moveDistance * 5, 400, 1400);
     this.hamster.moveTo(propPosition.x, duration);
     this.hamster.root.scene.time.delayedCall(duration, onArrive);
+  }
+
+  private getWeightedBehaviorWeight(behavior: HamsterBehaviorName): number {
+    const baseWeight = this.rules[behavior].weight;
+    const modifier = this.moodWeightModifiers[this.mood][behavior] ?? 1;
+    return baseWeight * modifier;
+  }
+
+  private getPreferredPropId(defaultPropId: string): string {
+    if (this.mood === 'excited' && defaultPropId !== 'wheel') {
+      return this.random() < 0.45 ? 'wheel' : defaultPropId;
+    }
+
+    if (this.mood === 'calm') {
+      if (defaultPropId === 'wheel' && this.random() < 0.7) {
+        return 'hideout';
+      }
+      if (defaultPropId === 'tunnel' && this.random() < 0.45) {
+        return 'hideout';
+      }
+    }
+
+    return defaultPropId;
+  }
+
+  private refreshMood(now: number): void {
+    if (this.mood !== 'calm' && now >= this.moodUntil) {
+      this.mood = 'calm';
+      this.moodUntil = 0;
+      this.hamster.setMood('calm');
+    }
   }
 }
