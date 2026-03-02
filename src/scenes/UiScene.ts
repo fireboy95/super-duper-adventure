@@ -11,8 +11,8 @@ const DEBUG_COMMAND_ROW_MIN_WIDTH = 156;
 const DEBUG_COMMAND_ROW_HORIZONTAL_MARGIN = 16;
 const DEBUG_COMMAND_SUBMIT_BUTTON_WIDTH = 62;
 const DEBUG_COMMAND_SUBMIT_BUTTON_GAP = 12;
-const DEBUG_LOG_TOGGLE_BUTTON_WIDTH = 88;
 const DEBUG_LOG_MAX_COLLAPSED_LINE_LENGTH = 220;
+const DEBUG_LOG_MAX_COLLAPSED_LINE_LENGTH_MOBILE = 120;
 
 type ConsoleMethod = 'log' | 'info' | 'warn' | 'error' | 'debug';
 
@@ -40,8 +40,6 @@ export class UiScene extends Phaser.Scene {
   private debugCommandInputBackground?: Phaser.GameObjects.Rectangle;
   private debugCommandInputText?: Phaser.GameObjects.Text;
   private debugCommandSubmitButton?: Phaser.GameObjects.Container;
-  private debugLogExpandToggleButton?: Phaser.GameObjects.Container;
-  private debugLogExpandToggleLabel?: Phaser.GameObjects.Text;
 
   private debugCommandValue = '';
   private debugCommandHiddenInput?: HTMLInputElement;
@@ -96,8 +94,6 @@ export class UiScene extends Phaser.Scene {
       this.debugCommandInputBackground = undefined;
       this.debugCommandInputText = undefined;
       this.debugCommandSubmitButton = undefined;
-      this.debugLogExpandToggleButton = undefined;
-      this.debugLogExpandToggleLabel = undefined;
       this.input.off(Phaser.Input.Events.POINTER_WHEEL, this.handleDebugPaneWheel, this);
       this.input.off(Phaser.Input.Events.POINTER_MOVE, this.handleGlobalPointerMove, this);
       this.input.off(Phaser.Input.Events.POINTER_UP, this.handleGlobalPointerUp, this);
@@ -135,8 +131,6 @@ export class UiScene extends Phaser.Scene {
     this.debugCommandInputBackground = undefined;
     this.debugCommandInputText = undefined;
     this.debugCommandSubmitButton = undefined;
-    this.debugLogExpandToggleButton = undefined;
-    this.debugLogExpandToggleLabel = undefined;
 
     this.destroyHiddenCommandInput();
   }
@@ -215,6 +209,14 @@ export class UiScene extends Phaser.Scene {
         event.stopPropagation();
         this.preventDefaultIfSupported(event);
         this.handleDebugPaneDrag(pointer);
+      })
+      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+        event.stopPropagation();
+        this.preventDefaultIfSupported(event);
+
+        if (!this.didDragDebugPane && this.hasLongDebugLogLines()) {
+          this.toggleLongLogLinesExpanded();
+        }
       });
 
     const initialInputWidth = this.getDebugCommandRowWidth(width);
@@ -253,33 +255,10 @@ export class UiScene extends Phaser.Scene {
         this.executeCommandFromInput();
       });
 
-    const toggleBackground = this.add
-      .rectangle(0, 0, DEBUG_LOG_TOGGLE_BUTTON_WIDTH, 30, 0x16335c, 0.95)
-      .setOrigin(0.5)
-      .setStrokeStyle(1, 0x74c6ff, 0.8);
-    this.debugLogExpandToggleLabel = this.add
-      .text(0, 0, 'Expand', {
-        fontFamily: 'monospace',
-        fontSize: '12px',
-        color: '#d7efff',
-      })
-      .setOrigin(0.5);
-
-    this.debugLogExpandToggleButton = this.add.container(0, 0, [toggleBackground, this.debugLogExpandToggleLabel]);
-    this.debugLogExpandToggleButton
-      .setSize(DEBUG_LOG_TOGGLE_BUTTON_WIDTH, 30)
-      .setInteractive({ useHandCursor: true })
-      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
-        event.stopPropagation();
-        this.preventDefaultIfSupported(event);
-        this.toggleLongLogLinesExpanded();
-      });
-
     this.debugCommandInputContainer = this.add.container(0, 0, [
       this.debugCommandInputBackground,
       this.debugCommandInputText,
-      this.debugCommandSubmitButton,
-      this.debugLogExpandToggleButton,
+      this.debugCommandSubmitButton
     ]);
     this.debugCommandInputContainer
       .setSize(initialInputWidth, 42)
@@ -436,8 +415,7 @@ export class UiScene extends Phaser.Scene {
       !this.debugCommandInputContainer ||
       !this.debugCommandInputBackground ||
       !this.debugCommandInputText ||
-      !this.debugCommandSubmitButton ||
-      !this.debugLogExpandToggleButton
+      !this.debugCommandSubmitButton
     ) {
       return;
     }
@@ -476,8 +454,7 @@ export class UiScene extends Phaser.Scene {
 
     const submitAndGap = DEBUG_COMMAND_SUBMIT_BUTTON_WIDTH + DEBUG_COMMAND_SUBMIT_BUTTON_GAP;
 
-    this.debugLogExpandToggleButton.setPosition(inputWidth / 2 - (DEBUG_LOG_TOGGLE_BUTTON_WIDTH / 2 + 8), 0);
-    this.debugCommandSubmitButton.setPosition(inputWidth / 2 - (submitAndGap + DEBUG_LOG_TOGGLE_BUTTON_WIDTH + DEBUG_COMMAND_SUBMIT_BUTTON_GAP / 2 + 8), 0);
+    this.debugCommandSubmitButton.setPosition(inputWidth / 2 - (submitAndGap / 2 + 8), 0);
     this.debugCommandInputText.setPosition(-inputWidth / 2 + 12, 0);
     this.refreshHiddenCommandInputLayout(inputWidth, upwardOffset);
 
@@ -495,11 +472,9 @@ export class UiScene extends Phaser.Scene {
     const inputHeight = 30;
     const inputHorizontalPadding = 6;
     const submitAndGap = DEBUG_COMMAND_SUBMIT_BUTTON_WIDTH + DEBUG_COMMAND_SUBMIT_BUTTON_GAP;
-    const expandAndGap = DEBUG_LOG_TOGGLE_BUTTON_WIDTH + DEBUG_COMMAND_SUBMIT_BUTTON_GAP;
-
     const left = canvasBounds.left + (this.scale.width - inputWidth) / 2 + inputHorizontalPadding;
     const top = canvasBounds.top + paneTop + inputCenterY - inputHeight / 2;
-    const width = Math.max(88, inputWidth - submitAndGap - expandAndGap - inputHorizontalPadding * 2);
+    const width = Math.max(88, inputWidth - submitAndGap - inputHorizontalPadding * 2);
 
     this.debugCommandHiddenInput.style.left = `${left}px`;
     this.debugCommandHiddenInput.style.top = `${top}px`;
@@ -655,9 +630,6 @@ export class UiScene extends Phaser.Scene {
       this.debugCommandSubmitButton.input.enabled = enabled;
     }
 
-    if (this.debugLogExpandToggleButton?.input) {
-      this.debugLogExpandToggleButton.input.enabled = enabled;
-    }
 
     if (this.debugCommandHiddenInput) {
       this.debugCommandHiddenInput.disabled = !enabled;
@@ -863,16 +835,29 @@ export class UiScene extends Phaser.Scene {
 
   private toggleLongLogLinesExpanded(): void {
     this.isDebugLogLongLineExpanded = !this.isDebugLogLongLineExpanded;
-    this.debugLogExpandToggleLabel?.setText(this.isDebugLogLongLineExpanded ? 'Collapse' : 'Expand');
     this.refreshDebugText();
   }
 
   private formatDebugLogLineForDisplay(line: string): string {
-    if (this.isDebugLogLongLineExpanded || line.length <= DEBUG_LOG_MAX_COLLAPSED_LINE_LENGTH) {
+    const collapsedLineLength = this.getCollapsedDebugLineLength();
+    if (line.length <= collapsedLineLength) {
       return line;
     }
 
-    return `${line.slice(0, DEBUG_LOG_MAX_COLLAPSED_LINE_LENGTH)}… [tap Expand]`;
+    if (this.isDebugLogLongLineExpanded) {
+      return `${line} [tap to collapse]`;
+    }
+
+    return `${line.slice(0, collapsedLineLength)}… [tap to expand]`;
+  }
+
+  private getCollapsedDebugLineLength(): number {
+    return this.scale.width <= 480 ? DEBUG_LOG_MAX_COLLAPSED_LINE_LENGTH_MOBILE : DEBUG_LOG_MAX_COLLAPSED_LINE_LENGTH;
+  }
+
+  private hasLongDebugLogLines(): boolean {
+    const collapsedLineLength = this.getCollapsedDebugLineLength();
+    return this.debugLogLines.some((line) => line.length > collapsedLineLength);
   }
 
 
