@@ -14,6 +14,11 @@ const DEBUG_COMMAND_SUBMIT_BUTTON_GAP = 12;
 const DEBUG_LOG_MAX_COLLAPSED_LINE_LENGTH = 220;
 const DEBUG_LOG_MAX_COLLAPSED_LINE_LENGTH_MOBILE = 120;
 
+type FlattenedDebugLogLine = {
+  sourceLineIndex: number;
+  text: string;
+};
+
 type ConsoleMethod = 'log' | 'info' | 'warn' | 'error' | 'debug';
 
 type DebugCommandExecutionResult =
@@ -51,7 +56,7 @@ export class UiScene extends Phaser.Scene {
   private readonly debugLogLines: string[] = [];
   private debugLogScrollOffset = 0;
   private debugLogAutoFollow = true;
-  private isDebugLogLongLineExpanded = false;
+  private readonly expandedDebugLogLineIndices = new Set<number>();
   private dragStartY?: number;
   private dragStartOffset = 0;
   private isDraggingDebugPane = false;
@@ -210,12 +215,12 @@ export class UiScene extends Phaser.Scene {
         this.preventDefaultIfSupported(event);
         this.handleDebugPaneDrag(pointer);
       })
-      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, (_pointer: Phaser.Input.Pointer, _localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
         this.preventDefaultIfSupported(event);
 
         if (!this.didDragDebugPane && this.hasLongDebugLogLines()) {
-          this.toggleLongLogLinesExpanded();
+          this.toggleLongLogLineExpansionAtLocalY(localY);
         }
       });
 
@@ -806,7 +811,9 @@ export class UiScene extends Phaser.Scene {
 
     this.debugLogLines.push(line);
     if (this.debugLogLines.length > MAX_LOG_LINES) {
-      this.debugLogLines.splice(0, this.debugLogLines.length - MAX_LOG_LINES);
+      const removedLineCount = this.debugLogLines.length - MAX_LOG_LINES;
+      this.debugLogLines.splice(0, removedLineCount);
+      this.shiftExpandedDebugLineIndices(removedLineCount);
     }
 
     if (shouldStickToBottom) {
@@ -830,21 +837,39 @@ export class UiScene extends Phaser.Scene {
     this.debugLogScrollOffset = Phaser.Math.Clamp(this.debugLogScrollOffset, 0, maxOffset);
     const visibleLines = flattenedLines.slice(this.debugLogScrollOffset, this.debugLogScrollOffset + visibleLineCount);
 
-    this.debugPaneText.setText(visibleLines.map((line) => this.formatDebugLogLineForDisplay(line)).join('\n'));
+    this.debugPaneText.setText(visibleLines.map((line) => line.text).join('\n'));
   }
 
-  private toggleLongLogLinesExpanded(): void {
-    this.isDebugLogLongLineExpanded = !this.isDebugLogLongLineExpanded;
+  private toggleLongLogLineExpansionAtLocalY(localY: number): void {
+    const localLineIndex = Math.max(0, Math.floor(localY / this.getDebugLogLineHeight()));
+    const flattenedLines = this.getFlattenedDebugLogLines();
+    const targetLine = flattenedLines[this.debugLogScrollOffset + localLineIndex];
+
+    if (!targetLine) {
+      return;
+    }
+
+    const sourceLine = this.debugLogLines[targetLine.sourceLineIndex];
+    if (!sourceLine || sourceLine.length <= this.getCollapsedDebugLineLength()) {
+      return;
+    }
+
+    if (this.expandedDebugLogLineIndices.has(targetLine.sourceLineIndex)) {
+      this.expandedDebugLogLineIndices.delete(targetLine.sourceLineIndex);
+    } else {
+      this.expandedDebugLogLineIndices.add(targetLine.sourceLineIndex);
+    }
+
     this.refreshDebugText();
   }
 
-  private formatDebugLogLineForDisplay(line: string): string {
+  private formatDebugLogLineForDisplay(line: string, sourceLineIndex: number): string {
     const collapsedLineLength = this.getCollapsedDebugLineLength();
     if (line.length <= collapsedLineLength) {
       return line;
     }
 
-    if (this.isDebugLogLongLineExpanded) {
+    if (this.expandedDebugLogLineIndices.has(sourceLineIndex)) {
       return `${line} [tap to collapse]`;
     }
 
@@ -871,7 +896,7 @@ export class UiScene extends Phaser.Scene {
     }
 
     const estimatedLineHeight = this.getDebugLogLineHeight();
-    const movedLines = Math.round((pointer.y - this.dragStartY) / estimatedLineHeight);
+    const movedLines = Math.trunc((pointer.y - this.dragStartY) / estimatedLineHeight);
     this.setDebugLogScrollOffset(this.dragStartOffset + movedLines);
   }
 
@@ -954,30 +979,41 @@ export class UiScene extends Phaser.Scene {
     return Math.max(1, fontSize + lineSpacing);
   }
 
-  private getMaxDebugLogOffset(
-    visibleLineCount = this.getVisibleDebugLineCount(),
-    totalLineCount = this.getFlattenedDebugLogLines().length,
-  ): number {
+  private getMaxDebugLogOffset(visibleLineCount = this.getVisibleDebugLineCount(), totalLineCount = this.getFlattenedDebugLogLines().length): number {
     return Math.max(0, totalLineCount - visibleLineCount);
   }
 
-  private getFlattenedDebugLogLines(): string[] {
+  private getFlattenedDebugLogLines(): FlattenedDebugLogLine[] {
     if (!this.debugPaneText) {
-      return [...this.debugLogLines];
+      return this.debugLogLines.map((line, index) => ({ sourceLineIndex: index, text: this.formatDebugLogLineForDisplay(line, index) }));
     }
 
-    const flattenedLines: string[] = [];
-    for (const line of this.debugLogLines) {
-      const wrappedLines = this.debugPaneText.getWrappedText(line);
+    const flattenedLines: FlattenedDebugLogLine[] = [];
+    for (const [sourceLineIndex, line] of this.debugLogLines.entries()) {
+      const formattedLine = this.formatDebugLogLineForDisplay(line, sourceLineIndex);
+      const wrappedLines = this.debugPaneText.getWrappedText(formattedLine);
       if (wrappedLines.length === 0) {
-        flattenedLines.push('');
+        flattenedLines.push({ sourceLineIndex, text: '' });
         continue;
       }
 
-      flattenedLines.push(...wrappedLines);
+      flattenedLines.push(...wrappedLines.map((wrappedLine) => ({ sourceLineIndex, text: wrappedLine })));
     }
 
     return flattenedLines;
+  }
+
+  private shiftExpandedDebugLineIndices(removedLineCount: number): void {
+    if (removedLineCount <= 0 || this.expandedDebugLogLineIndices.size === 0) {
+      return;
+    }
+
+    const shiftedIndices = [...this.expandedDebugLogLineIndices]
+      .map((index) => index - removedLineCount)
+      .filter((index) => index >= 0);
+
+    this.expandedDebugLogLineIndices.clear();
+    shiftedIndices.forEach((index) => this.expandedDebugLogLineIndices.add(index));
   }
 
   private formatConsoleArgs(args: unknown[]): string {
