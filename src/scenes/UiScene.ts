@@ -829,7 +829,7 @@ export class UiScene extends Phaser.Scene {
       this.didDragDebugPane = true;
     }
 
-    const estimatedLineHeight = 18;
+    const estimatedLineHeight = this.getDebugLogLineHeight();
     const movedLines = Math.round((pointer.y - this.dragStartY) / estimatedLineHeight);
     this.setDebugLogScrollOffset(this.dragStartOffset + movedLines);
   }
@@ -894,8 +894,23 @@ export class UiScene extends Phaser.Scene {
 
   private getVisibleDebugLineCount(): number {
     const availableLogAreaHeight = Math.max(0, this.debugPaneHeight - 68);
-    const estimatedLineHeight = 18;
+    const estimatedLineHeight = this.getDebugLogLineHeight();
     return Math.max(1, Math.floor(availableLogAreaHeight / estimatedLineHeight));
+  }
+
+  private getDebugLogLineHeight(): number {
+    const fallbackLineHeight = 18;
+    if (!this.debugPaneText) {
+      return fallbackLineHeight;
+    }
+
+    const fontSize = Number.parseFloat(String(this.debugPaneText.style.fontSize));
+    const lineSpacing = Number.isFinite(this.debugPaneText.lineSpacing) ? this.debugPaneText.lineSpacing : 0;
+    if (!Number.isFinite(fontSize) || fontSize <= 0) {
+      return fallbackLineHeight;
+    }
+
+    return Math.max(1, fontSize + lineSpacing);
   }
 
   private getMaxDebugLogOffset(visibleLineCount = this.getVisibleDebugLineCount()): number {
