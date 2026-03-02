@@ -620,7 +620,7 @@ export class UiScene extends Phaser.Scene {
 
     if (this.debugCommandHiddenInput) {
       this.debugCommandHiddenInput.disabled = !enabled;
-      this.debugCommandHiddenInput.style.pointerEvents = 'none';
+      this.debugCommandHiddenInput.style.pointerEvents = enabled ? 'auto' : 'none';
       this.debugCommandHiddenInput.style.visibility = enabled ? 'visible' : 'hidden';
       this.debugCommandHiddenInput.tabIndex = enabled ? 0 : -1;
     }
