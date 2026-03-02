@@ -624,9 +624,9 @@ export class UiScene extends Phaser.Scene {
       return;
     }
 
-    this.appendLog(`> ${trimmedCommand}`);
-
     try {
+      this.appendLog(`> ${trimmedCommand}`);
+
       const result = this.executeDebugCommand(trimmedCommand);
 
       if (result instanceof Promise) {
@@ -636,21 +636,21 @@ export class UiScene extends Phaser.Scene {
             this.appendLog(`[result:resolved] ${this.stringifyArg(resolvedValue)}`);
           })
           .catch((error) => {
-            this.appendLog(`[result:rejected] ${this.stringifyArg(error)}`);
+            this.appendLog(`[error] ${this.stringifyArg(error)}`);
           });
       } else {
         this.appendLog(`[result] ${this.stringifyArg(result)}`);
       }
     } catch (error) {
-      this.appendLog(`[command-error] ${this.stringifyArg(error)}`);
+      this.appendLog(`[error] ${this.stringifyArg(error)}`);
+    } finally {
+      this.debugCommandValue = '';
+      if (this.debugCommandHiddenInput) {
+        this.debugCommandHiddenInput.value = '';
+      }
+      this.refreshDebugCommandText();
+      this.refocusHiddenCommandInput();
     }
-
-    this.debugCommandValue = '';
-    if (this.debugCommandHiddenInput) {
-      this.debugCommandHiddenInput.value = '';
-    }
-    this.refreshDebugCommandText();
-    this.refocusHiddenCommandInput();
   }
 
   private refreshDebugCommandText(): void {
