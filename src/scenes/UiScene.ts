@@ -811,10 +811,11 @@ export class UiScene extends Phaser.Scene {
       return;
     }
 
+    const flattenedLines = this.getFlattenedDebugLogLines();
     const visibleLineCount = this.getVisibleDebugLineCount();
-    const maxOffset = this.getMaxDebugLogOffset(visibleLineCount);
+    const maxOffset = this.getMaxDebugLogOffset(visibleLineCount, flattenedLines.length);
     this.debugLogScrollOffset = Phaser.Math.Clamp(this.debugLogScrollOffset, 0, maxOffset);
-    const visibleLines = this.debugLogLines.slice(this.debugLogScrollOffset, this.debugLogScrollOffset + visibleLineCount);
+    const visibleLines = flattenedLines.slice(this.debugLogScrollOffset, this.debugLogScrollOffset + visibleLineCount);
 
     this.debugPaneText.setText(visibleLines.join('\n'));
   }
@@ -829,7 +830,7 @@ export class UiScene extends Phaser.Scene {
       this.didDragDebugPane = true;
     }
 
-    const estimatedLineHeight = 18;
+    const estimatedLineHeight = this.getDebugLogLineHeight();
     const movedLines = Math.round((pointer.y - this.dragStartY) / estimatedLineHeight);
     this.setDebugLogScrollOffset(this.dragStartOffset + movedLines);
   }
@@ -894,12 +895,49 @@ export class UiScene extends Phaser.Scene {
 
   private getVisibleDebugLineCount(): number {
     const availableLogAreaHeight = Math.max(0, this.debugPaneHeight - 68);
-    const estimatedLineHeight = 18;
+    const estimatedLineHeight = this.getDebugLogLineHeight();
     return Math.max(1, Math.floor(availableLogAreaHeight / estimatedLineHeight));
   }
 
-  private getMaxDebugLogOffset(visibleLineCount = this.getVisibleDebugLineCount()): number {
-    return Math.max(0, this.debugLogLines.length - visibleLineCount);
+  private getDebugLogLineHeight(): number {
+    const fallbackLineHeight = 18;
+    if (!this.debugPaneText) {
+      return fallbackLineHeight;
+    }
+
+    const fontSize = Number.parseFloat(String(this.debugPaneText.style.fontSize));
+    const lineSpacing = Number.isFinite(this.debugPaneText.lineSpacing) ? this.debugPaneText.lineSpacing : 0;
+    if (!Number.isFinite(fontSize) || fontSize <= 0) {
+      return fallbackLineHeight;
+    }
+
+    return Math.max(1, fontSize + lineSpacing);
+  }
+
+  private getMaxDebugLogOffset(
+    visibleLineCount = this.getVisibleDebugLineCount(),
+    totalLineCount = this.getFlattenedDebugLogLines().length,
+  ): number {
+    return Math.max(0, totalLineCount - visibleLineCount);
+  }
+
+  private getFlattenedDebugLogLines(): string[] {
+    if (!this.debugPaneText) {
+      return [...this.debugLogLines];
+    }
+
+    const flattenedLines: string[] = [];
+    for (const line of this.debugLogLines) {
+      const wrappedLines = this.debugPaneText.getWrappedText(line);
+      if (wrappedLines.length === 0) {
+        flattenedLines.push('');
+        continue;
+      }
+
+      flattenedLines.push(...wrappedLines);
+    }
+
+    return flattenedLines;
   }
 
   private formatConsoleArgs(args: unknown[]): string {
