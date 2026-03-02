@@ -427,8 +427,32 @@ export class UiScene extends Phaser.Scene {
 
     this.debugCommandSubmitButton.setPosition(inputWidth / 2 - 40, 0);
     this.debugCommandInputText.setPosition(-inputWidth / 2 + 12, 0);
+    this.refreshHiddenCommandInputLayout(inputWidth, upwardOffset);
 
     this.refreshDebugText();
+  }
+
+  private refreshHiddenCommandInputLayout(inputWidth: number, upwardOffset: number): void {
+    if (!this.debugCommandHiddenInput || !this.game.canvas || !this.scale.parentSize) {
+      return;
+    }
+
+    const canvasBounds = this.game.canvas.getBoundingClientRect();
+    const paneTop = 28 - upwardOffset;
+    const inputCenterY = Math.max(24, this.debugPaneHeight - 30);
+    const inputHeight = 30;
+    const inputHorizontalPadding = 6;
+    const runButtonWidth = 62;
+    const submitAndGap = runButtonWidth + 18;
+
+    const left = canvasBounds.left + (this.scale.width - inputWidth) / 2 + inputHorizontalPadding;
+    const top = canvasBounds.top + paneTop + inputCenterY - inputHeight / 2;
+    const width = Math.max(88, inputWidth - submitAndGap - inputHorizontalPadding * 2);
+
+    this.debugCommandHiddenInput.style.left = `${left}px`;
+    this.debugCommandHiddenInput.style.top = `${top}px`;
+    this.debugCommandHiddenInput.style.width = `${width}px`;
+    this.debugCommandHiddenInput.style.height = `${inputHeight}px`;
   }
 
   private captureConsoleOutput(): void {
@@ -480,15 +504,29 @@ export class UiScene extends Phaser.Scene {
     input.autocapitalize = 'off';
     input.spellcheck = false;
     input.style.position = 'fixed';
-    input.style.left = '-10000px';
+    input.style.left = '0';
     input.style.top = '0';
-    input.style.opacity = '0';
-    input.style.pointerEvents = 'none';
+    input.style.zIndex = '1200';
+    input.style.boxSizing = 'border-box';
+    input.style.border = '1px solid rgba(116, 198, 255, 0.92)';
+    input.style.borderRadius = '4px';
+    input.style.background = 'rgba(8, 23, 43, 0.95)';
+    input.style.color = '#d7efff';
+    input.style.fontFamily = 'monospace';
+    input.style.fontSize = '13px';
+    input.style.padding = '4px 8px';
+    input.style.outline = 'none';
+    input.style.webkitAppearance = 'none';
 
     input.addEventListener('input', this.handleHiddenCommandInput);
     input.addEventListener('keydown', this.handleHiddenCommandKeyDown);
+    input.addEventListener('mousedown', this.handleHiddenCommandPointerDown);
+    input.addEventListener('touchstart', this.handleHiddenCommandPointerDown, { passive: false });
     document.body.appendChild(input);
     this.debugCommandHiddenInput = input;
+    this.setDebugPaneInputEnabled(this.isDebugPaneExpanded);
+    this.refreshDebugCommandText();
+    this.refreshDebugPaneLayout();
   }
 
   private destroyHiddenCommandInput(): void {
@@ -498,6 +536,8 @@ export class UiScene extends Phaser.Scene {
 
     this.debugCommandHiddenInput.removeEventListener('input', this.handleHiddenCommandInput);
     this.debugCommandHiddenInput.removeEventListener('keydown', this.handleHiddenCommandKeyDown);
+    this.debugCommandHiddenInput.removeEventListener('mousedown', this.handleHiddenCommandPointerDown);
+    this.debugCommandHiddenInput.removeEventListener('touchstart', this.handleHiddenCommandPointerDown);
     this.debugCommandHiddenInput.remove();
     this.debugCommandHiddenInput = undefined;
   }
@@ -518,6 +558,13 @@ export class UiScene extends Phaser.Scene {
 
     (event as PreventableEventData).preventDefault();
     this.executeCommandFromInput();
+  };
+
+  private readonly handleHiddenCommandPointerDown = (event: MouseEvent | TouchEvent): void => {
+    if (!this.isDebugPaneExpanded || Date.now() < this.suppressCommandFocusUntil) {
+      event.preventDefault();
+      this.blurHiddenCommandInput();
+    }
   };
 
   private focusHiddenCommandInputIfAllowed(): void {
@@ -551,6 +598,13 @@ export class UiScene extends Phaser.Scene {
 
     if (this.debugCommandSubmitButton?.input) {
       this.debugCommandSubmitButton.input.enabled = enabled;
+    }
+
+    if (this.debugCommandHiddenInput) {
+      this.debugCommandHiddenInput.disabled = !enabled;
+      this.debugCommandHiddenInput.style.pointerEvents = enabled ? 'auto' : 'none';
+      this.debugCommandHiddenInput.style.visibility = enabled ? 'visible' : 'hidden';
+      this.debugCommandHiddenInput.tabIndex = enabled ? 0 : -1;
     }
   }
 
@@ -595,6 +649,10 @@ export class UiScene extends Phaser.Scene {
   }
 
   private refreshDebugCommandText(): void {
+    if (this.debugCommandHiddenInput && this.debugCommandHiddenInput.value !== this.debugCommandValue) {
+      this.debugCommandHiddenInput.value = this.debugCommandValue;
+    }
+
     if (!this.debugCommandInputText) {
       return;
     }
@@ -748,6 +806,12 @@ export class UiScene extends Phaser.Scene {
     }
 
     const lineStep = deltaY === 0 ? 0 : Math.sign(deltaY) * Math.max(1, Math.round(Math.abs(deltaY) / 36));
+    if (lineStep === 0) {
+      return;
+    }
+
+    this.suppressCommandFocusUntil = Date.now() + DEBUG_SCROLL_FOCUS_SUPPRESSION_MS;
+    this.blurHiddenCommandInput();
     this.setDebugLogScrollOffset(this.debugLogScrollOffset + lineStep);
   };
 
