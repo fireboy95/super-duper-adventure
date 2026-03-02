@@ -17,6 +17,14 @@ export class MainScene extends Phaser.Scene {
   private hamsterBehaviorTimer?: Phaser.Time.TimerEvent;
   private isUiInputBlocked = false;
 
+  private readonly propLayoutRatios = {
+    wheel: { x: 0.72, y: 0.62 },
+    foodBowl: { x: 0.28, y: 0.71 },
+    waterBottle: { x: 0.9, y: 0.43 },
+    tunnel: { x: 0.5, y: 0.71 },
+    hideout: { x: 0.14, y: 0.62 },
+  } as const;
+
   constructor() {
     super('main-scene');
   }
@@ -45,16 +53,16 @@ export class MainScene extends Phaser.Scene {
     this.cageView.addProp({
       id: 'wheel',
       kind: 'wheel',
-      x: this.scale.width * 0.72,
-      y: this.scale.height * 0.62,
+      x: this.scale.width * this.propLayoutRatios.wheel.x,
+      y: this.scale.height * this.propLayoutRatios.wheel.y,
       width: 150,
       color: 0x8ba2c8,
     });
     this.cageView.addProp({
       id: 'food-bowl',
       kind: 'food-bowl',
-      x: this.scale.width * 0.28,
-      y: this.scale.height * 0.71,
+      x: this.scale.width * this.propLayoutRatios.foodBowl.x,
+      y: this.scale.height * this.propLayoutRatios.foodBowl.y,
       width: 90,
       height: 56,
       color: 0xd5884f,
@@ -63,8 +71,8 @@ export class MainScene extends Phaser.Scene {
     this.cageView.addProp({
       id: 'water-bottle',
       kind: 'water-bottle',
-      x: this.scale.width * 0.9,
-      y: this.scale.height * 0.43,
+      x: this.scale.width * this.propLayoutRatios.waterBottle.x,
+      y: this.scale.height * this.propLayoutRatios.waterBottle.y,
       width: 42,
       height: 150,
       color: 0x7ab7d9,
@@ -73,8 +81,8 @@ export class MainScene extends Phaser.Scene {
     this.cageView.addProp({
       id: 'tunnel',
       kind: 'tunnel',
-      x: this.scale.width * 0.5,
-      y: this.scale.height * 0.71,
+      x: this.scale.width * this.propLayoutRatios.tunnel.x,
+      y: this.scale.height * this.propLayoutRatios.tunnel.y,
       width: 180,
       height: 72,
       color: 0xa8704b,
@@ -82,18 +90,18 @@ export class MainScene extends Phaser.Scene {
     this.cageView.addProp({
       id: 'hideout',
       kind: 'hideout',
-      x: this.scale.width * 0.14,
-      y: this.scale.height * 0.62,
+      x: this.scale.width * this.propLayoutRatios.hideout.x,
+      y: this.scale.height * this.propLayoutRatios.hideout.y,
       width: 140,
       height: 118,
       color: 0x8f6f50,
     });
 
-
     this.cageView.on('prop:activated', this.handlePropActivated);
     this.cageView.on('prop:cooldown', this.handlePropCooldown);
 
-    this.hamster = new HamsterActor(this, this.scale.width * 0.5, this.scale.height * 0.45, 'hamster', 1.2);
+    const responsiveLayout = this.getResponsiveLayout(this.scale.width, this.scale.height);
+    this.hamster = new HamsterActor(this, responsiveLayout.hamsterX, responsiveLayout.hamsterY, 'hamster', responsiveLayout.hamsterScale);
     this.cageView.attachHamster(this.hamster);
     this.layoutCage(this.scale.width, this.scale.height);
 
@@ -228,6 +236,50 @@ export class MainScene extends Phaser.Scene {
 
   private layoutCage(width: number, height: number): void {
     this.cageView?.layout(width, height);
+
+    const responsiveLayout = this.getResponsiveLayout(width, height);
+    this.cageView?.setPropState('wheel', {
+      x: width * this.propLayoutRatios.wheel.x,
+      y: height * this.propLayoutRatios.wheel.y,
+      scale: responsiveLayout.propScale,
+    });
+    this.cageView?.setPropState('food-bowl', {
+      x: width * this.propLayoutRatios.foodBowl.x,
+      y: height * this.propLayoutRatios.foodBowl.y,
+      scale: responsiveLayout.propScale,
+    });
+    this.cageView?.setPropState('water-bottle', {
+      x: width * this.propLayoutRatios.waterBottle.x,
+      y: height * this.propLayoutRatios.waterBottle.y,
+      scale: responsiveLayout.propScale,
+    });
+    this.cageView?.setPropState('tunnel', {
+      x: width * this.propLayoutRatios.tunnel.x,
+      y: height * this.propLayoutRatios.tunnel.y,
+      scale: responsiveLayout.propScale,
+    });
+    this.cageView?.setPropState('hideout', {
+      x: width * this.propLayoutRatios.hideout.x,
+      y: height * this.propLayoutRatios.hideout.y,
+      scale: responsiveLayout.propScale,
+    });
+
+    if (this.hamster) {
+      this.hamster.setScale(responsiveLayout.hamsterScale);
+      this.hamster.setPosition(responsiveLayout.hamsterX, responsiveLayout.hamsterY);
+    }
+  }
+
+  private getResponsiveLayout(width: number, height: number): { hamsterX: number; hamsterY: number; hamsterScale: number; propScale: number } {
+    if (width <= 640) {
+      return { hamsterX: width * 0.5, hamsterY: height * 0.52, hamsterScale: 0.86, propScale: 0.78 };
+    }
+
+    if (width <= 900) {
+      return { hamsterX: width * 0.5, hamsterY: height * 0.48, hamsterScale: 1, propScale: 0.9 };
+    }
+
+    return { hamsterX: width * 0.5, hamsterY: height * 0.45, hamsterScale: 1.2, propScale: 1 };
   }
 
   private shutdown(): void {

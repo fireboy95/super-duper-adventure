@@ -32,6 +32,15 @@ export class HamsterActor {
     return this.root.x;
   }
 
+  public setPosition(x: number, y: number): void {
+    this.root.setPosition(x, y);
+  }
+
+  public setScale(scale: number): void {
+    this.sprite.setScale(scale);
+    this.root.setSize(this.sprite.displayWidth, this.sprite.displayHeight);
+  }
+
   public setState(nextState: HamsterState): void {
     if (this.currentState === nextState) {
       return;
