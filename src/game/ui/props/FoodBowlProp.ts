@@ -15,11 +15,11 @@ export class FoodBowlProp implements CageInteractiveProp {
     this.scene = scene;
     this.id = id;
     this.container = scene.add.container(x, y);
-    this.bowl = scene.add.ellipse(0, 0, width, height * 0.5, color, 1).setStrokeStyle(3, 0x553311);
+    this.bowl = scene.add.ellipse(0, 0, width, height * 0.5, color, 0.16).setStrokeStyle(2, color, 0.9);
     this.kibble = [
-      scene.add.circle(-width * 0.18, -height * 0.12, 4, 0xe9cc8e),
-      scene.add.circle(0, -height * 0.14, 4, 0xe4c17b),
-      scene.add.circle(width * 0.17, -height * 0.1, 4, 0xf5db9c),
+      scene.add.circle(-width * 0.18, -height * 0.12, 3, color, 0.45),
+      scene.add.circle(0, -height * 0.14, 3, color, 0.45),
+      scene.add.circle(width * 0.17, -height * 0.1, 3, color, 0.45),
     ];
 
     this.container.add([this.bowl, ...this.kibble]);
@@ -29,15 +29,15 @@ export class FoodBowlProp implements CageInteractiveProp {
   }
 
   public setActive(active: boolean): void {
-    this.container.setAlpha(active ? 1 : 0.9);
+    this.container.setAlpha(active ? 1 : 0.8);
   }
 
   public playEffect(name: PropEffectName): void {
     if (name === 'activate') {
       this.scene.tweens.add({
         targets: this.container,
-        scaleX: 1.08,
-        scaleY: 0.92,
+        scaleX: 1.04,
+        scaleY: 0.96,
         duration: 140,
         yoyo: true,
       });
@@ -58,7 +58,7 @@ export class FoodBowlProp implements CageInteractiveProp {
     if (name === 'cooldown') {
       this.scene.tweens.add({
         targets: this.container,
-        alpha: 0.55,
+        alpha: 0.4,
         duration: 150,
         yoyo: true,
       });

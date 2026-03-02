@@ -13,8 +13,8 @@ export class WheelProp implements CageInteractiveProp {
   constructor(scene: Phaser.Scene, id: string, x: number, y: number, size: number, color: number) {
     this.scene = scene;
     this.id = id;
-    this.sprite = scene.add.circle(x, y, size * 0.5, color, 1).setStrokeStyle(6, 0x3a3a3a);
-    this.axle = scene.add.circle(x, y, size * 0.09, 0x2f3748, 1);
+    this.sprite = scene.add.circle(x, y, size * 0.5, color, 0.14).setStrokeStyle(3, color, 0.9);
+    this.axle = scene.add.circle(x, y, size * 0.08, color, 0.8);
     this.sprite.setDataEnabled();
     this.sprite.data?.set('wheelAxle', this.axle);
     this.interactiveArea = new Phaser.Geom.Rectangle(-size * 0.5, -size * 0.5, size, size);
@@ -29,7 +29,7 @@ export class WheelProp implements CageInteractiveProp {
       this.spinTween = this.scene.tweens.add({
         targets: this.sprite,
         angle: this.sprite.angle + 360,
-        duration: 550,
+        duration: 700,
         ease: 'Linear',
         repeat: -1,
       });
@@ -50,7 +50,7 @@ export class WheelProp implements CageInteractiveProp {
       this.setActive(false);
       this.scene.tweens.add({
         targets: this.sprite,
-        alpha: 0.65,
+        alpha: 0.45,
         yoyo: true,
         duration: 180,
       });
