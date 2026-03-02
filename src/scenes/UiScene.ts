@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { LayeredIconMenu, type LayeredMenuNode } from '../game/ui/LayeredIconMenu';
 
 const ROUTE_EVENT = 'ui:navigate';
+export const UI_INPUT_BLOCKED_EVENT = 'ui:input-blocked';
 const DEBUG_TEXTURE_KEY = 'debug-pane-texture';
 const MAX_LOG_LINES = 120;
 const DEFAULT_COMMAND_PLACEHOLDER = 'Type JavaScript and press Enter';
@@ -96,6 +97,7 @@ export class UiScene extends Phaser.Scene {
   }
 
   private shutdown(): void {
+    this.game.events.emit(UI_INPUT_BLOCKED_EVENT, false);
     this.restoreConsoleOutput();
     this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
     this.unbindViewportListeners();
@@ -342,6 +344,7 @@ export class UiScene extends Phaser.Scene {
   private toggleDebugPane(): void {
     const nextExpandedState = !this.isDebugPaneExpanded;
     this.isDebugPaneExpanded = nextExpandedState;
+    this.game.events.emit(UI_INPUT_BLOCKED_EVENT, nextExpandedState);
 
     if (!this.debugPaneContainer || !this.debugButtonContainer || !this.debugButtonLabel) {
       return;
