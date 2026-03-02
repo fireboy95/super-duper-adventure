@@ -811,10 +811,11 @@ export class UiScene extends Phaser.Scene {
       return;
     }
 
+    const flattenedLines = this.getFlattenedDebugLogLines();
     const visibleLineCount = this.getVisibleDebugLineCount();
-    const maxOffset = this.getMaxDebugLogOffset(visibleLineCount);
+    const maxOffset = this.getMaxDebugLogOffset(visibleLineCount, flattenedLines.length);
     this.debugLogScrollOffset = Phaser.Math.Clamp(this.debugLogScrollOffset, 0, maxOffset);
-    const visibleLines = this.debugLogLines.slice(this.debugLogScrollOffset, this.debugLogScrollOffset + visibleLineCount);
+    const visibleLines = flattenedLines.slice(this.debugLogScrollOffset, this.debugLogScrollOffset + visibleLineCount);
 
     this.debugPaneText.setText(visibleLines.join('\n'));
   }
@@ -913,8 +914,30 @@ export class UiScene extends Phaser.Scene {
     return Math.max(1, fontSize + lineSpacing);
   }
 
-  private getMaxDebugLogOffset(visibleLineCount = this.getVisibleDebugLineCount()): number {
-    return Math.max(0, this.debugLogLines.length - visibleLineCount);
+  private getMaxDebugLogOffset(
+    visibleLineCount = this.getVisibleDebugLineCount(),
+    totalLineCount = this.getFlattenedDebugLogLines().length,
+  ): number {
+    return Math.max(0, totalLineCount - visibleLineCount);
+  }
+
+  private getFlattenedDebugLogLines(): string[] {
+    if (!this.debugPaneText) {
+      return [...this.debugLogLines];
+    }
+
+    const flattenedLines: string[] = [];
+    for (const line of this.debugLogLines) {
+      const wrappedLines = this.debugPaneText.getWrappedText(line);
+      if (wrappedLines.length === 0) {
+        flattenedLines.push('');
+        continue;
+      }
+
+      flattenedLines.push(...wrappedLines);
+    }
+
+    return flattenedLines;
   }
 
   private formatConsoleArgs(args: unknown[]): string {
