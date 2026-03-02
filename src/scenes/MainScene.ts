@@ -196,6 +196,7 @@ export class MainScene extends Phaser.Scene {
 
   private readonly handlePropCooldown = (payload: { id: string }): void => {
     this.promptOverlay?.showTransientStatus(`${payload.id} is cooling down.`);
+    this.hamsterBehaviorDirector?.setMood('angry', 2600, this.time.now);
   };
 
   private refreshPromptView(): void {

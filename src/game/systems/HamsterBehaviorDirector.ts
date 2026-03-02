@@ -76,6 +76,14 @@ export class HamsterBehaviorDirector {
       drink: 1.15,
       groom: 0.85,
     },
+    angry: {
+      'run-wheel': 2.8,
+      wander: 1.8,
+      eat: 0.55,
+      drink: 0.65,
+      sleep: 0.18,
+      groom: 0.5,
+    },
   };
 
   private lastBehavior?: HamsterBehaviorName;
@@ -225,23 +233,38 @@ export class HamsterBehaviorDirector {
   }
 
   private runWheel(): void {
-    this.moveHamsterNearProp('wheel', () => this.hamster.setState('wheel'));
+    this.moveHamsterNearProp('wheel', () => {
+      this.hamster.setState('wheel');
+      this.hamster.showPropInteraction('⚙ sprint');
+    });
   }
 
   private runEat(): void {
-    this.moveHamsterNearProp('food-bowl', () => this.hamster.setState('eat'));
+    this.moveHamsterNearProp('food-bowl', () => {
+      this.hamster.setState('eat');
+      this.hamster.showPropInteraction('🥕 nibble');
+    });
   }
 
   private runDrink(): void {
-    this.moveHamsterNearProp('water-bottle', () => this.hamster.setState('idle'));
+    this.moveHamsterNearProp('water-bottle', () => {
+      this.hamster.setState('idle');
+      this.hamster.showPropInteraction('💧 sip');
+    });
   }
 
   private runGroom(): void {
-    this.moveHamsterNearProp('hideout', () => this.hamster.setState('groom'));
+    this.moveHamsterNearProp('hideout', () => {
+      this.hamster.setState('groom');
+      this.hamster.showPropInteraction('🧼 tidy');
+    });
   }
 
   private runHideInTunnel(): void {
-    this.moveHamsterNearProp('tunnel', () => this.hamster.setState('run'));
+    this.moveHamsterNearProp('tunnel', () => {
+      this.hamster.setState('run');
+      this.hamster.showPropInteraction('🕳 dash');
+    });
   }
 
   private moveHamsterNearProp(propId: string, onArrive: () => void): void {
