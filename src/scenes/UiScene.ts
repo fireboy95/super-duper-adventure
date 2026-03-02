@@ -652,6 +652,8 @@ export class UiScene extends Phaser.Scene {
       } else {
         this.appendLog(`[result] ${this.stringifyArg(result)}`);
       }
+    } catch (error) {
+      this.appendLog(`[error] ${this.stringifyArg(error)}`);
     } finally {
       this.debugCommandValue = '';
       if (this.debugCommandHiddenInput) {
@@ -746,6 +748,10 @@ export class UiScene extends Phaser.Scene {
         console[method] = original;
       }
     });
+
+    if (typeof window === 'undefined') {
+      return;
+    }
 
     window.onerror = this.originalWindowError ?? null;
     window.onunhandledrejection = this.originalUnhandledRejection ?? null;
