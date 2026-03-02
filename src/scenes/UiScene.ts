@@ -752,11 +752,24 @@ export class UiScene extends Phaser.Scene {
   }
 
   private refocusHiddenCommandInput(): void {
-    this.focusHiddenCommandInput();
+    this.focusAndPrimeHiddenCommandInput();
 
     if (typeof window !== 'undefined') {
-      window.setTimeout(() => this.focusHiddenCommandInput(), 0);
+      window.setTimeout(() => this.focusAndPrimeHiddenCommandInput(), 0);
+      window.requestAnimationFrame(() => this.focusAndPrimeHiddenCommandInput());
     }
+  }
+
+  private focusAndPrimeHiddenCommandInput(): void {
+    if (!this.debugCommandHiddenInput) {
+      return;
+    }
+
+    this.debugCommandHiddenInput.disabled = false;
+    this.focusHiddenCommandInput();
+
+    const valueLength = this.debugCommandHiddenInput.value.length;
+    this.debugCommandHiddenInput.setSelectionRange(valueLength, valueLength);
   }
 
   private restoreConsoleOutput(): void {
