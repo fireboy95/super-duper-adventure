@@ -45,6 +45,7 @@ This document defines the current, implemented behavior of the in-game debug pan
   - inset measured from `window.innerHeight - (visualViewport.height + visualViewport.offsetTop)`
   - inset only applied when >= `80px`
   - pane shifts upward while expanded to keep command input reachable
+- On mobile, the log viewport remains scrollable while the pane is open, and scrolling logs is a first-class interaction (not blocked by keyboard-first behavior).
 
 ## Log capture behavior
 
@@ -105,7 +106,10 @@ This document defines the current, implemented behavior of the in-game debug pan
 - During suppression:
   - pointer interaction with input is prevented
   - hidden input is blurred
-- Goal: avoid accidental keyboard popups while user is scrolling logs.
+- Keyboard visibility policy:
+  - scrolling the debug pane (wheel/drag/touch scroll) must **not** trigger the on-screen keyboard on mobile
+  - the keyboard is shown only when the user explicitly focuses/taps the text input region
+- Goal: avoid accidental keyboard popups while user is scrolling logs, while preserving intentional text entry.
 
 ## Styling and visual treatment
 
