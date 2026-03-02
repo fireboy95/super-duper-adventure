@@ -9,7 +9,6 @@ const DEFAULT_COMMAND_PLACEHOLDER = 'Type JavaScript and press Enter';
 const DEBUG_SCROLL_FOCUS_SUPPRESSION_MS = 180;
 
 type ConsoleMethod = 'log' | 'info' | 'warn' | 'error' | 'debug';
-type PreventableEventData = Phaser.Types.Input.EventData & { preventDefault: () => void };
 
 const CONSOLE_METHODS: readonly ConsoleMethod[] = ['log', 'info', 'warn', 'error', 'debug'];
 
@@ -156,15 +155,15 @@ export class UiScene extends Phaser.Scene {
       .setInteractive()
       .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
-        (event as PreventableEventData).preventDefault();
+        this.preventDefaultIfSupported(event);
       })
       .on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
-        (event as PreventableEventData).preventDefault();
+        this.preventDefaultIfSupported(event);
       })
       .on(Phaser.Input.Events.GAMEOBJECT_POINTER_MOVE, (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
-        (event as PreventableEventData).preventDefault();
+        this.preventDefaultIfSupported(event);
       });
     this.debugPaneScrollHitArea = this.add.zone(0, 0, 0, 0).setOrigin(0, 0);
     this.debugPaneText = this.add
@@ -186,7 +185,7 @@ export class UiScene extends Phaser.Scene {
       .setInteractive()
       .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
-        (event as PreventableEventData).preventDefault();
+        this.preventDefaultIfSupported(event);
         this.dragStartY = pointer.y;
         this.dragStartOffset = this.debugLogScrollOffset;
         this.isDraggingDebugPane = true;
@@ -194,7 +193,7 @@ export class UiScene extends Phaser.Scene {
       })
       .on(Phaser.Input.Events.GAMEOBJECT_POINTER_MOVE, (pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
-        (event as PreventableEventData).preventDefault();
+        this.preventDefaultIfSupported(event);
         this.handleDebugPaneDrag(pointer);
       });
 
@@ -228,7 +227,7 @@ export class UiScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
-        (event as PreventableEventData).preventDefault();
+        this.preventDefaultIfSupported(event);
         this.executeCommandFromInput();
       });
 
@@ -242,7 +241,7 @@ export class UiScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
-        (event as PreventableEventData).preventDefault();
+        this.preventDefaultIfSupported(event);
         this.focusHiddenCommandInputIfAllowed();
       });
 
@@ -556,9 +555,15 @@ export class UiScene extends Phaser.Scene {
       return;
     }
 
-    (event as PreventableEventData).preventDefault();
+    this.preventDefaultIfSupported(event);
     this.executeCommandFromInput();
   };
+
+  private preventDefaultIfSupported(event: unknown): void {
+    if (typeof event === 'object' && event !== null && 'preventDefault' in event && typeof event.preventDefault === 'function') {
+      event.preventDefault();
+    }
+  }
 
   private readonly handleHiddenCommandPointerDown = (event: MouseEvent | TouchEvent): void => {
     if (!this.isDebugPaneExpanded || Date.now() < this.suppressCommandFocusUntil) {
