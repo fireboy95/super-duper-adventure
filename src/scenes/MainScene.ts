@@ -3,7 +3,7 @@ import { defaultPromptScript } from '../game/prompt/defaultPromptScript';
 import { PromptEngine } from '../game/prompt/PromptEngine';
 import { type PromptChoice, type PromptKeyword } from '../game/prompt/types';
 import { AudioSystem } from '../game/systems/AudioSystem';
-import { HamsterBehaviorDirector } from '../game/systems/HamsterBehaviorDirector';
+import { HamsterBehaviorDirector, type HamsterBehaviorEventPayload } from '../game/systems/HamsterBehaviorDirector';
 import { CageView } from '../game/ui/CageView';
 import { HamsterActor } from '../game/ui/HamsterActor';
 import { PromptDialogueOverlay } from '../game/ui/PromptDialogueOverlay';
@@ -108,6 +108,7 @@ export class MainScene extends Phaser.Scene {
     this.hamsterBehaviorDirector = new HamsterBehaviorDirector(this.hamster, this.cageView, {
       seed: 424242,
     });
+    this.hamsterBehaviorDirector.on('after-behavior', this.handleHamsterBehavior);
     this.layoutCage(this.scale.width, this.scale.height);
 
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
@@ -189,6 +190,29 @@ export class MainScene extends Phaser.Scene {
     this.promptOverlay?.showTransientStatus(`${payload.id} is cooling down.`);
   };
 
+
+  private readonly handleHamsterBehavior = (payload: HamsterBehaviorEventPayload): void => {
+    switch (payload.behavior) {
+      case 'run-wheel':
+        this.cageView?.activateProp('wheel');
+        break;
+      case 'eat':
+        this.cageView?.activateProp('food-bowl');
+        break;
+      case 'drink':
+        this.cageView?.activateProp('water-bottle');
+        break;
+      case 'hide-in-tunnel':
+        this.cageView?.activateProp('tunnel', 'traverse');
+        break;
+      case 'sleep':
+        this.promptOverlay?.showTransientStatus('Hamster feels sleepy...');
+        break;
+      default:
+        break;
+    }
+  };
+
   private refreshPromptView(): void {
     if (!this.promptEngine || !this.promptOverlay) {
       return;
@@ -261,6 +285,7 @@ export class MainScene extends Phaser.Scene {
     this.isUiInputBlocked = false;
     this.hamsterBehaviorTimer?.remove();
     this.hamsterBehaviorTimer = undefined;
+    this.hamsterBehaviorDirector?.off('after-behavior', this.handleHamsterBehavior);
     this.hamsterBehaviorDirector?.dispose();
     this.hamsterBehaviorDirector = undefined;
     this.hamster?.destroy();

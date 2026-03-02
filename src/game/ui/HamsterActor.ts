@@ -4,15 +4,21 @@ const HAMSTER_STATES = ['idle', 'run', 'sleep', 'eat', 'wheel'] as const;
 
 type HamsterState = (typeof HAMSTER_STATES)[number];
 type FacingDirection = 'left' | 'right';
+type HamsterMood = 'neutral' | 'happy' | 'sleepy' | 'angry' | 'curious';
 
 export class HamsterActor {
   public readonly root: Phaser.GameObjects.Container;
 
   private readonly scene: Phaser.Scene;
   private readonly sprite: Phaser.GameObjects.Sprite;
+  private readonly moodAura: Phaser.GameObjects.Ellipse;
+  private readonly moodIcon: Phaser.GameObjects.Text;
   private currentState?: HamsterState;
+  private currentMood: HamsterMood = 'neutral';
   private currentFacing: FacingDirection = 'right';
   private moveTween?: Phaser.Tweens.Tween;
+  private moodTween?: Phaser.Tweens.Tween;
+  private moodResetTimer?: Phaser.Time.TimerEvent;
 
   constructor(scene: Phaser.Scene, x: number, y: number, textureKey: string, scale = 1) {
     this.scene = scene;
@@ -21,8 +27,14 @@ export class HamsterActor {
     this.ensureAnimations(textureKey);
 
     this.root = scene.add.container(x, y).setDepth(1);
+    this.moodAura = scene.add.ellipse(0, 14, 62, 20, 0xffffff, 0.18).setVisible(false);
     this.sprite = scene.add.sprite(0, 0, textureKey).setScale(scale);
-    this.root.add(this.sprite);
+    this.moodIcon = scene.add.text(0, -32, '', {
+      fontFamily: 'sans-serif',
+      fontSize: '20px',
+      color: '#ffffff',
+    }).setOrigin(0.5).setVisible(false);
+    this.root.add([this.moodAura, this.sprite, this.moodIcon]);
     this.root.setSize(this.sprite.displayWidth, this.sprite.displayHeight);
 
     this.setState('idle');
@@ -48,6 +60,21 @@ export class HamsterActor {
 
     this.currentState = nextState;
     this.sprite.play(`hamster-${nextState}`, true);
+    this.applyStateMotion(nextState);
+  }
+
+  public expressMood(mood: HamsterMood, durationMs = 0): void {
+    this.currentMood = mood;
+    this.applyMoodStyle(mood);
+
+    this.moodResetTimer?.remove(false);
+    this.moodResetTimer = undefined;
+    if (durationMs > 0) {
+      this.moodResetTimer = this.scene.time.delayedCall(durationMs, () => {
+        this.currentMood = 'neutral';
+        this.applyMoodStyle('neutral');
+      });
+    }
   }
 
   public face(direction: FacingDirection): void {
@@ -86,8 +113,70 @@ export class HamsterActor {
 
   public destroy(): void {
     this.moveTween?.stop();
+    this.moodTween?.stop();
+    this.moodResetTimer?.remove(false);
     this.moveTween = undefined;
     this.root.destroy(true);
+  }
+
+  private applyStateMotion(state: HamsterState): void {
+    this.moodTween?.stop();
+    this.sprite.setScale(Math.abs(this.sprite.scaleX), this.sprite.scaleY);
+
+    if (state === 'run' || state === 'wheel') {
+      this.moodTween = this.scene.tweens.add({
+        targets: this.sprite,
+        y: { from: 0, to: -4 },
+        duration: 130,
+        yoyo: true,
+        repeat: -1,
+      });
+      return;
+    }
+
+    if (state === 'sleep') {
+      this.moodTween = this.scene.tweens.add({
+        targets: this.sprite,
+        scaleY: this.sprite.scaleY * 0.95,
+        duration: 800,
+        yoyo: true,
+        repeat: -1,
+      });
+      return;
+    }
+
+    this.sprite.setY(0);
+  }
+
+  private applyMoodStyle(mood: HamsterMood): void {
+    switch (mood) {
+      case 'happy':
+        this.sprite.setTint(0xfff6b0);
+        this.moodAura.setFillStyle(0xffde7a, 0.32).setVisible(true);
+        this.moodIcon.setText('✨').setVisible(true);
+        break;
+      case 'sleepy':
+        this.sprite.setTint(0xb8d1ff);
+        this.moodAura.setFillStyle(0xa7bcff, 0.28).setVisible(true);
+        this.moodIcon.setText('💤').setVisible(true);
+        break;
+      case 'angry':
+        this.sprite.setTint(0xff9d9d);
+        this.moodAura.setFillStyle(0xff7a7a, 0.35).setVisible(true);
+        this.moodIcon.setText('💢').setVisible(true);
+        break;
+      case 'curious':
+        this.sprite.setTint(0xc8f0ff);
+        this.moodAura.setFillStyle(0x95e5ff, 0.25).setVisible(true);
+        this.moodIcon.setText('❔').setVisible(true);
+        break;
+      case 'neutral':
+      default:
+        this.sprite.clearTint();
+        this.moodAura.setVisible(false);
+        this.moodIcon.setVisible(false);
+        break;
+    }
   }
 
   private ensureFallbackTexture(textureKey: string): void {

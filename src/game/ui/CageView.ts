@@ -103,6 +103,19 @@ export class CageView {
     return this.props.get(id)?.object;
   }
 
+
+  public activateProp(id: string, effect: 'activate' | 'traverse' = 'activate'): boolean {
+    const registration = this.props.get(id);
+    if (!registration?.interactive) {
+      return false;
+    }
+
+    registration.interactive.setActive(true);
+    registration.interactive.playEffect(effect);
+    this.scene.time.delayedCall(1200, () => registration.interactive?.setActive(false));
+    return true;
+  }
+
   public setPropState(id: string, state: CagePropState): void {
     const prop = this.props.get(id)?.object;
     if (!prop) {

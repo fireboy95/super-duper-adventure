@@ -6,6 +6,8 @@ const BEHAVIOR_NAMES = ['wander', 'run-wheel', 'eat', 'drink', 'sleep', 'hide-in
 
 export type HamsterBehaviorName = (typeof BEHAVIOR_NAMES)[number];
 
+export type HamsterEmotion = 'neutral' | 'happy' | 'sleepy' | 'angry' | 'curious';
+
 type BehaviorTrigger = 'tick' | 'external';
 
 type BehaviorEventName = 'before-behavior' | 'after-behavior' | 'blocked-behavior';
@@ -165,6 +167,7 @@ export class HamsterBehaviorDirector {
 
   private applyBehavior(behavior: HamsterBehaviorName, now: number, trigger: BehaviorTrigger): void {
     this.events.emit('before-behavior', { behavior, trigger, now } satisfies HamsterBehaviorEventPayload);
+    this.hamster.expressMood(this.moodForBehavior(behavior), 1800);
     this.rules[behavior].run();
     this.lastBehavior = behavior;
     this.cooldownsUntil.set(behavior, now + this.rules[behavior].cooldownMs);
@@ -185,11 +188,29 @@ export class HamsterBehaviorDirector {
   }
 
   private runDrink(): void {
-    this.moveHamsterNearProp('water-bottle', () => this.hamster.setState('idle'));
+    this.moveHamsterNearProp('water-bottle', () => this.hamster.setState('eat'));
   }
 
   private runHideInTunnel(): void {
-    this.moveHamsterNearProp('tunnel', () => this.hamster.setState('run'));
+    this.moveHamsterNearProp('tunnel', () => this.hamster.setState('idle'));
+  }
+
+
+  private moodForBehavior(behavior: HamsterBehaviorName): HamsterEmotion {
+    switch (behavior) {
+      case 'eat':
+      case 'drink':
+        return 'happy';
+      case 'sleep':
+        return 'sleepy';
+      case 'hide-in-tunnel':
+        return 'curious';
+      case 'run-wheel':
+        return 'angry';
+      case 'wander':
+      default:
+        return 'neutral';
+    }
   }
 
   private moveHamsterNearProp(propId: string, onArrive: () => void): void {
