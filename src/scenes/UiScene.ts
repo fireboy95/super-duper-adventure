@@ -7,6 +7,10 @@ const DEBUG_TEXTURE_KEY = 'debug-pane-texture';
 const MAX_LOG_LINES = 120;
 const DEFAULT_COMMAND_PLACEHOLDER = 'Type JavaScript and press Enter';
 const DEBUG_SCROLL_FOCUS_SUPPRESSION_MS = 180;
+const DEBUG_COMMAND_ROW_MIN_WIDTH = 156;
+const DEBUG_COMMAND_ROW_HORIZONTAL_MARGIN = 16;
+const DEBUG_COMMAND_SUBMIT_BUTTON_WIDTH = 62;
+const DEBUG_COMMAND_SUBMIT_BUTTON_GAP = 12;
 
 type ConsoleMethod = 'log' | 'info' | 'warn' | 'error' | 'debug';
 
@@ -204,8 +208,10 @@ export class UiScene extends Phaser.Scene {
         this.handleDebugPaneDrag(pointer);
       });
 
+    const initialInputWidth = this.getDebugCommandRowWidth(width);
+
     this.debugCommandInputBackground = this.add
-      .rectangle(0, 0, Math.max(220, width - 32), 42, 0x0e2038, 0.88)
+      .rectangle(0, 0, initialInputWidth, 42, 0x0e2038, 0.88)
       .setOrigin(0.5)
       .setStrokeStyle(1, 0x74c6ff, 0.8);
     this.debugCommandInputText = this.add
@@ -217,7 +223,7 @@ export class UiScene extends Phaser.Scene {
       .setOrigin(0, 0.5);
 
     const submitBackground = this.add
-      .rectangle(0, 0, 62, 30, 0x16335c, 0.95)
+      .rectangle(0, 0, DEBUG_COMMAND_SUBMIT_BUTTON_WIDTH, 30, 0x16335c, 0.95)
       .setOrigin(0.5)
       .setStrokeStyle(1, 0x74c6ff, 0.8);
     const submitLabel = this.add
@@ -230,7 +236,7 @@ export class UiScene extends Phaser.Scene {
 
     this.debugCommandSubmitButton = this.add.container(0, 0, [submitBackground, submitLabel]);
     this.debugCommandSubmitButton
-      .setSize(62, 30)
+      .setSize(DEBUG_COMMAND_SUBMIT_BUTTON_WIDTH, 30)
       .setInteractive({ useHandCursor: true })
       .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
@@ -244,7 +250,7 @@ export class UiScene extends Phaser.Scene {
       this.debugCommandSubmitButton,
     ]);
     this.debugCommandInputContainer
-      .setSize(Math.max(220, width - 32), 42)
+      .setSize(initialInputWidth, 42)
       .setInteractive({ useHandCursor: true })
       .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
@@ -430,12 +436,12 @@ export class UiScene extends Phaser.Scene {
       .setPosition(-width / 2 + 12, 0)
       .setCrop(0, 0, textAreaWidth, textAreaHeight);
 
-    const inputWidth = Math.max(220, width - 32);
+    const inputWidth = this.getDebugCommandRowWidth(width);
     this.debugCommandInputContainer.setSize(inputWidth, 42);
     this.debugCommandInputBackground.setSize(inputWidth, 42);
     this.debugCommandInputContainer.setPosition(0, Math.max(24, this.debugPaneHeight - 30));
 
-    this.debugCommandSubmitButton.setPosition(inputWidth / 2 - 40, 0);
+    this.debugCommandSubmitButton.setPosition(inputWidth / 2 - (DEBUG_COMMAND_SUBMIT_BUTTON_WIDTH / 2 + 8), 0);
     this.debugCommandInputText.setPosition(-inputWidth / 2 + 12, 0);
     this.refreshHiddenCommandInputLayout(inputWidth, upwardOffset);
 
@@ -452,8 +458,7 @@ export class UiScene extends Phaser.Scene {
     const inputCenterY = Math.max(24, this.debugPaneHeight - 30);
     const inputHeight = 30;
     const inputHorizontalPadding = 6;
-    const runButtonWidth = 62;
-    const submitAndGap = runButtonWidth + 18;
+    const submitAndGap = DEBUG_COMMAND_SUBMIT_BUTTON_WIDTH + DEBUG_COMMAND_SUBMIT_BUTTON_GAP;
 
     const left = canvasBounds.left + (this.scale.width - inputWidth) / 2 + inputHorizontalPadding;
     const top = canvasBounds.top + paneTop + inputCenterY - inputHeight / 2;
@@ -463,6 +468,10 @@ export class UiScene extends Phaser.Scene {
     this.debugCommandHiddenInput.style.top = `${top}px`;
     this.debugCommandHiddenInput.style.width = `${width}px`;
     this.debugCommandHiddenInput.style.height = `${inputHeight}px`;
+  }
+
+  private getDebugCommandRowWidth(sceneWidth: number): number {
+    return Math.max(DEBUG_COMMAND_ROW_MIN_WIDTH, sceneWidth - DEBUG_COMMAND_ROW_HORIZONTAL_MARGIN);
   }
 
   private captureConsoleOutput(): void {
