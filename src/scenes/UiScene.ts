@@ -38,6 +38,7 @@ export class UiScene extends Phaser.Scene {
   private debugPaneHeight = 0;
   private readonly debugLogLines: string[] = [];
   private debugLogScrollOffset = 0;
+  private debugLogAutoFollow = true;
   private dragStartY?: number;
   private dragStartOffset = 0;
   private isDraggingDebugPane = false;
@@ -730,7 +731,7 @@ export class UiScene extends Phaser.Scene {
   }
 
   private appendLog(line: string): void {
-    const shouldStickToBottom = this.debugLogScrollOffset >= this.getMaxDebugLogOffset() - 1;
+    const shouldStickToBottom = this.debugLogAutoFollow;
 
     this.debugLogLines.push(line);
     if (this.debugLogLines.length > MAX_LOG_LINES) {
@@ -739,6 +740,7 @@ export class UiScene extends Phaser.Scene {
 
     if (shouldStickToBottom) {
       this.debugLogScrollOffset = this.getMaxDebugLogOffset();
+      this.debugLogAutoFollow = true;
     } else {
       this.debugLogScrollOffset = Math.min(this.debugLogScrollOffset, this.getMaxDebugLogOffset());
     }
@@ -822,6 +824,8 @@ export class UiScene extends Phaser.Scene {
 
   private setDebugLogScrollOffset(nextOffset: number): void {
     const clampedOffset = Phaser.Math.Clamp(nextOffset, 0, this.getMaxDebugLogOffset());
+    this.debugLogAutoFollow = clampedOffset >= this.getMaxDebugLogOffset();
+
     if (clampedOffset === this.debugLogScrollOffset) {
       return;
     }
