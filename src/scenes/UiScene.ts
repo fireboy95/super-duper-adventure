@@ -573,6 +573,7 @@ export class UiScene extends Phaser.Scene {
 
     this.preventDefaultIfSupported(event);
     this.stopPropagationIfSupported(event);
+    this.stopImmediatePropagationIfSupported(event);
     this.executeCommandFromInput();
   };
 
@@ -585,6 +586,17 @@ export class UiScene extends Phaser.Scene {
   private stopPropagationIfSupported(event: unknown): void {
     if (typeof event === 'object' && event !== null && 'stopPropagation' in event && typeof event.stopPropagation === 'function') {
       event.stopPropagation();
+    }
+  }
+
+  private stopImmediatePropagationIfSupported(event: unknown): void {
+    if (
+      typeof event === 'object' &&
+      event !== null &&
+      'stopImmediatePropagation' in event &&
+      typeof event.stopImmediatePropagation === 'function'
+    ) {
+      event.stopImmediatePropagation();
     }
   }
 
@@ -764,6 +776,7 @@ export class UiScene extends Phaser.Scene {
     if (typeof window !== 'undefined') {
       window.setTimeout(() => this.focusHiddenCommandInput(), 0);
       window.requestAnimationFrame(() => this.focusHiddenCommandInput());
+      window.setTimeout(() => this.focusHiddenCommandInput(), 32);
     }
   }
 
