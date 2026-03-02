@@ -89,6 +89,10 @@ export class MainScene extends Phaser.Scene {
       color: 0x8f6f50,
     });
 
+
+    this.cageView.on('prop:activated', this.handlePropActivated);
+    this.cageView.on('prop:cooldown', this.handlePropCooldown);
+
     this.hamster = new HamsterActor(this, this.scale.width * 0.5, this.scale.height * 0.45, 'hamster', 1.2);
     this.cageView.attachHamster(this.hamster);
     this.layoutCage(this.scale.width, this.scale.height);
@@ -173,6 +177,37 @@ export class MainScene extends Phaser.Scene {
     this.refreshPromptView();
   }
 
+
+  private readonly handlePropActivated = (payload: { id: string }): void => {
+    if (!this.hamster) {
+      return;
+    }
+
+    switch (payload.id) {
+      case 'wheel':
+        this.hamster.setState('wheel');
+        break;
+      case 'food-bowl':
+        this.hamster.setState('eat');
+        break;
+      case 'water-bottle': {
+        this.hamster.setState('idle');
+        const targetX = Phaser.Math.Clamp(this.scale.width * 0.84, 64, this.scale.width - 64);
+        this.hamster.moveTo(targetX, 600);
+        break;
+      }
+      case 'tunnel':
+        this.hamster.setState('run');
+        break;
+      default:
+        break;
+    }
+  };
+
+  private readonly handlePropCooldown = (payload: { id: string }): void => {
+    this.promptOverlay?.showTransientStatus(`${payload.id} is cooling down.`);
+  };
+
   private refreshPromptView(): void {
     if (!this.promptEngine || !this.promptOverlay) {
       return;
@@ -203,7 +238,11 @@ export class MainScene extends Phaser.Scene {
     this.hamsterBehaviorTimer = undefined;
     this.hamster?.destroy();
     this.hamster = undefined;
-    this.cageView?.destroy();
+    if (this.cageView) {
+      this.cageView.off('prop:activated', this.handlePropActivated);
+      this.cageView.off('prop:cooldown', this.handlePropCooldown);
+      this.cageView.destroy();
+    }
     this.cageView = undefined;
     this.promptOverlay?.destroy();
     this.promptOverlay = undefined;
