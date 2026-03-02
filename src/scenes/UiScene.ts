@@ -249,6 +249,10 @@ export class UiScene extends Phaser.Scene {
       .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
         this.preventDefaultIfSupported(event);
+        if (Date.now() < this.suppressCommandFocusUntil) {
+          this.blurHiddenCommandInput();
+          return;
+        }
         this.focusHiddenCommandInputIfAllowed();
       });
 
@@ -526,8 +530,6 @@ export class UiScene extends Phaser.Scene {
 
     input.addEventListener('input', this.handleHiddenCommandInput);
     input.addEventListener('keydown', this.handleHiddenCommandKeyDown);
-    input.addEventListener('mousedown', this.handleHiddenCommandPointerDown);
-    input.addEventListener('touchstart', this.handleHiddenCommandPointerDown, { passive: false });
     document.body.appendChild(input);
     this.debugCommandHiddenInput = input;
     this.setDebugPaneInputEnabled(this.isDebugPaneExpanded);
@@ -542,8 +544,6 @@ export class UiScene extends Phaser.Scene {
 
     this.debugCommandHiddenInput.removeEventListener('input', this.handleHiddenCommandInput);
     this.debugCommandHiddenInput.removeEventListener('keydown', this.handleHiddenCommandKeyDown);
-    this.debugCommandHiddenInput.removeEventListener('mousedown', this.handleHiddenCommandPointerDown);
-    this.debugCommandHiddenInput.removeEventListener('touchstart', this.handleHiddenCommandPointerDown);
     this.debugCommandHiddenInput.remove();
     this.debugCommandHiddenInput = undefined;
   }
@@ -572,13 +572,6 @@ export class UiScene extends Phaser.Scene {
     }
   }
 
-  private readonly handleHiddenCommandPointerDown = (event: MouseEvent | TouchEvent): void => {
-    if (!this.isDebugPaneExpanded || Date.now() < this.suppressCommandFocusUntil) {
-      event.preventDefault();
-      this.blurHiddenCommandInput();
-    }
-  };
-
   private focusHiddenCommandInputIfAllowed(): void {
     if (!this.isDebugPaneExpanded || Date.now() < this.suppressCommandFocusUntil) {
       return;
@@ -588,11 +581,15 @@ export class UiScene extends Phaser.Scene {
   }
 
   private focusHiddenCommandInput(): void {
-    if (!this.isDebugPaneExpanded) {
+    if (!this.isDebugPaneExpanded || !this.debugCommandHiddenInput) {
       return;
     }
 
-    this.debugCommandHiddenInput?.focus();
+    try {
+      this.debugCommandHiddenInput.focus({ preventScroll: true });
+    } catch (_error) {
+      this.debugCommandHiddenInput.focus();
+    }
   }
 
   private setDebugPaneInputEnabled(enabled: boolean): void {
@@ -614,7 +611,7 @@ export class UiScene extends Phaser.Scene {
 
     if (this.debugCommandHiddenInput) {
       this.debugCommandHiddenInput.disabled = !enabled;
-      this.debugCommandHiddenInput.style.pointerEvents = enabled ? 'auto' : 'none';
+      this.debugCommandHiddenInput.style.pointerEvents = 'none';
       this.debugCommandHiddenInput.style.visibility = enabled ? 'visible' : 'hidden';
       this.debugCommandHiddenInput.tabIndex = enabled ? 0 : -1;
     }
