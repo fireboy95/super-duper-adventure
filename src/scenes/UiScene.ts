@@ -881,7 +881,11 @@ export class UiScene extends Phaser.Scene {
     try {
       return JSON.stringify(value);
     } catch {
-      return String(value);
+      try {
+        return String(value);
+      } catch {
+        return '[unstringifiable value]';
+      }
     }
   }
 
