@@ -3,6 +3,7 @@ import { defaultPromptScript } from '../game/prompt/defaultPromptScript';
 import { PromptEngine } from '../game/prompt/PromptEngine';
 import { type PromptChoice, type PromptKeyword } from '../game/prompt/types';
 import { AudioSystem } from '../game/systems/AudioSystem';
+import { HamsterBehaviorDirector } from '../game/systems/HamsterBehaviorDirector';
 import { CageView } from '../game/ui/CageView';
 import { HamsterActor } from '../game/ui/HamsterActor';
 import { PromptDialogueOverlay } from '../game/ui/PromptDialogueOverlay';
@@ -14,6 +15,7 @@ export class MainScene extends Phaser.Scene {
   private promptOverlay?: PromptDialogueOverlay;
   private cageView?: CageView;
   private hamster?: HamsterActor;
+  private hamsterBehaviorDirector?: HamsterBehaviorDirector;
   private hamsterBehaviorTimer?: Phaser.Time.TimerEvent;
   private isUiInputBlocked = false;
 
@@ -103,6 +105,9 @@ export class MainScene extends Phaser.Scene {
     const responsiveLayout = this.getResponsiveLayout(this.scale.width, this.scale.height);
     this.hamster = new HamsterActor(this, responsiveLayout.hamsterX, responsiveLayout.hamsterY, 'hamster', responsiveLayout.hamsterScale);
     this.cageView.attachHamster(this.hamster);
+    this.hamsterBehaviorDirector = new HamsterBehaviorDirector(this.hamster, this.cageView, {
+      seed: 424242,
+    });
     this.layoutCage(this.scale.width, this.scale.height);
 
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
@@ -110,36 +115,11 @@ export class MainScene extends Phaser.Scene {
     this.hamsterBehaviorTimer = this.time.addEvent({
       delay: 2600,
       loop: true,
-      callback: () => this.updateHamsterBehavior(),
+      callback: () => this.hamsterBehaviorDirector?.tick(this.time.now),
     });
 
     this.refreshPromptView();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
-  }
-
-  private updateHamsterBehavior(): void {
-    if (!this.hamster) {
-      return;
-    }
-
-    const roll = Math.random();
-    if (roll < 0.2) {
-      this.hamster.setState('sleep');
-      return;
-    }
-
-    if (roll < 0.45) {
-      this.hamster.setState('eat');
-      return;
-    }
-
-    if (roll < 0.6) {
-      this.hamster.setState('wheel');
-      return;
-    }
-
-    const targetX = Phaser.Math.Clamp(this.hamster.x + Phaser.Math.Between(-150, 150), 64, this.scale.width - 64);
-    this.hamster.moveTo(targetX, Phaser.Math.Between(700, 1500));
   }
 
   private handleAdvance(): void {
@@ -187,25 +167,18 @@ export class MainScene extends Phaser.Scene {
 
 
   private readonly handlePropActivated = (payload: { id: string }): void => {
-    if (!this.hamster) {
-      return;
-    }
-
     switch (payload.id) {
       case 'wheel':
-        this.hamster.setState('wheel');
+        this.hamsterBehaviorDirector?.triggerBehavior('run-wheel', this.time.now);
         break;
       case 'food-bowl':
-        this.hamster.setState('eat');
+        this.hamsterBehaviorDirector?.triggerBehavior('eat', this.time.now);
         break;
-      case 'water-bottle': {
-        this.hamster.setState('idle');
-        const targetX = Phaser.Math.Clamp(this.scale.width * 0.84, 64, this.scale.width - 64);
-        this.hamster.moveTo(targetX, 600);
+      case 'water-bottle':
+        this.hamsterBehaviorDirector?.triggerBehavior('drink', this.time.now);
         break;
-      }
       case 'tunnel':
-        this.hamster.setState('run');
+        this.hamsterBehaviorDirector?.triggerBehavior('hide-in-tunnel', this.time.now);
         break;
       default:
         break;
@@ -288,6 +261,8 @@ export class MainScene extends Phaser.Scene {
     this.isUiInputBlocked = false;
     this.hamsterBehaviorTimer?.remove();
     this.hamsterBehaviorTimer = undefined;
+    this.hamsterBehaviorDirector?.dispose();
+    this.hamsterBehaviorDirector = undefined;
     this.hamster?.destroy();
     this.hamster = undefined;
     if (this.cageView) {
