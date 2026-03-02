@@ -8,6 +8,7 @@ const DEFAULT_COMMAND_PLACEHOLDER = 'Type JavaScript and press Enter';
 const DEBUG_SCROLL_FOCUS_SUPPRESSION_MS = 180;
 
 type ConsoleMethod = 'log' | 'info' | 'warn' | 'error' | 'debug';
+type PreventableEventData = Phaser.Types.Input.EventData & { preventDefault: () => void };
 
 const CONSOLE_METHODS: readonly ConsoleMethod[] = ['log', 'info', 'warn', 'error', 'debug'];
 
@@ -153,12 +154,15 @@ export class UiScene extends Phaser.Scene {
       .setInteractive()
       .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
+        (event as PreventableEventData).preventDefault();
       })
       .on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
+        (event as PreventableEventData).preventDefault();
       })
       .on(Phaser.Input.Events.GAMEOBJECT_POINTER_MOVE, (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
+        (event as PreventableEventData).preventDefault();
       });
     this.debugPaneScrollHitArea = this.add.zone(0, 0, 0, 0).setOrigin(0, 0);
     this.debugPaneText = this.add
@@ -180,12 +184,15 @@ export class UiScene extends Phaser.Scene {
       .setInteractive()
       .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
+        (event as PreventableEventData).preventDefault();
         this.dragStartY = pointer.y;
         this.dragStartOffset = this.debugLogScrollOffset;
         this.isDraggingDebugPane = true;
         this.didDragDebugPane = false;
       })
-      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_MOVE, (pointer: Phaser.Input.Pointer) => {
+      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_MOVE, (pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+        event.stopPropagation();
+        (event as PreventableEventData).preventDefault();
         this.handleDebugPaneDrag(pointer);
       });
 
@@ -217,7 +224,11 @@ export class UiScene extends Phaser.Scene {
     this.debugCommandSubmitButton
       .setSize(62, 30)
       .setInteractive({ useHandCursor: true })
-      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => this.executeCommandFromInput());
+      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+        event.stopPropagation();
+        (event as PreventableEventData).preventDefault();
+        this.executeCommandFromInput();
+      });
 
     this.debugCommandInputContainer = this.add.container(0, 0, [
       this.debugCommandInputBackground,
@@ -227,7 +238,11 @@ export class UiScene extends Phaser.Scene {
     this.debugCommandInputContainer
       .setSize(Math.max(220, width - 32), 42)
       .setInteractive({ useHandCursor: true })
-      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => this.focusHiddenCommandInputIfAllowed());
+      .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+        event.stopPropagation();
+        (event as PreventableEventData).preventDefault();
+        this.focusHiddenCommandInputIfAllowed();
+      });
 
     this.debugPaneContainer = this.add.container(width / 2, 28, [
       this.debugPaneBackground,
@@ -498,7 +513,7 @@ export class UiScene extends Phaser.Scene {
       return;
     }
 
-    event.preventDefault();
+    (event as PreventableEventData).preventDefault();
     this.executeCommandFromInput();
   };
 
