@@ -660,8 +660,17 @@ export class UiScene extends Phaser.Scene {
         this.debugCommandHiddenInput.value = '';
       }
       this.refreshDebugCommandText();
+      this.ensureDebugCommandInputReady();
       this.refocusHiddenCommandInput();
     }
+  }
+
+  private ensureDebugCommandInputReady(): void {
+    if (!this.isDebugPaneExpanded) {
+      return;
+    }
+
+    this.setDebugPaneInputEnabled(true);
   }
 
   private refreshDebugCommandText(): void {
