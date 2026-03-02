@@ -56,6 +56,10 @@ export class MainScene extends Phaser.Scene {
   }
 
   private handleChoiceSelection(choice: PromptChoice): void {
+    if (this.isUiInputBlocked) {
+      return;
+    }
+
     this.audioSystem?.unlock();
     if (!this.promptEngine) {
       return;
@@ -70,6 +74,10 @@ export class MainScene extends Phaser.Scene {
   }
 
   private handleKeywordSelection(keyword: PromptKeyword): void {
+    if (this.isUiInputBlocked) {
+      return;
+    }
+
     this.audioSystem?.unlock();
     this.promptEngine?.inspectKeyword(keyword.id);
     this.refreshPromptView();
