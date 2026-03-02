@@ -959,9 +959,20 @@ export class UiScene extends Phaser.Scene {
   }
 
   private getVisibleDebugLineCount(): number {
-    const availableLogAreaHeight = Math.max(0, this.debugPaneHeight - 68);
+    const availableLogAreaHeight = Math.max(0, this.debugPaneHeight - 68 - this.getDebugTextVerticalPadding());
     const estimatedLineHeight = this.getDebugLogLineHeight();
     return Math.max(1, Math.floor(availableLogAreaHeight / estimatedLineHeight));
+  }
+
+  private getDebugTextVerticalPadding(): number {
+    if (!this.debugPaneText) {
+      return 0;
+    }
+
+    const topPadding = Number(this.debugPaneText.padding.top) || 0;
+    const bottomPadding = Number(this.debugPaneText.padding.bottom) || 0;
+
+    return Math.max(0, topPadding + bottomPadding);
   }
 
   private getDebugLogLineHeight(): number {
