@@ -15,9 +15,9 @@ export class WaterBottleProp implements CageInteractiveProp {
     this.scene = scene;
     this.id = id;
 
-    const bottleBody = scene.add.rectangle(0, 0, width * 0.28, height, color, 1).setStrokeStyle(2, 0xffffff);
-    const nozzle = scene.add.rectangle(0, height * 0.46, width * 0.2, height * 0.16, 0xb4b8c8, 1).setOrigin(0.5, 0);
-    this.drip = scene.add.circle(0, height * 0.72, 3, 0x89d2ff, 0);
+    const bottleBody = scene.add.rectangle(0, 0, width * 0.24, height, color, 0.12).setStrokeStyle(2, color, 0.85);
+    const nozzle = scene.add.rectangle(0, height * 0.46, width * 0.17, height * 0.12, color, 0.55).setOrigin(0.5, 0);
+    this.drip = scene.add.circle(0, height * 0.7, 2.5, color, 0);
 
     this.container = scene.add.container(x, y, [bottleBody, nozzle, this.drip]);
     this.container.setSize(width, height);
@@ -46,7 +46,7 @@ export class WaterBottleProp implements CageInteractiveProp {
     if (name === 'cooldown') {
       this.scene.tweens.add({
         targets: this.container,
-        alpha: 0.7,
+        alpha: 0.45,
         duration: 120,
         yoyo: true,
       });
@@ -66,8 +66,8 @@ export class WaterBottleProp implements CageInteractiveProp {
     this.dripTween = this.scene.tweens.add({
       targets: this.drip,
       y: this.container.height,
-      alpha: { from: 0.9, to: 0 },
-      duration: 520,
+      alpha: { from: 0.65, to: 0 },
+      duration: 460,
       ease: 'Quad.easeIn',
       repeat: -1,
       repeatDelay: 260,

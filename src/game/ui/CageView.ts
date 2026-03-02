@@ -58,8 +58,8 @@ export class CageView {
     this.actorLayer = scene.add.container(0, 0);
     this.foregroundLayer = scene.add.container(0, 0);
 
-    this.background = scene.add.rectangle(0, 0, 1, 1, 0x1d2535).setOrigin(0, 0);
-    this.floor = scene.add.rectangle(0, 0, 1, 1, 0xc7b58b).setOrigin(0, 0);
+    this.background = scene.add.rectangle(0, 0, 1, 1, 0xf4f6fb).setOrigin(0, 0);
+    this.floor = scene.add.rectangle(0, 0, 1, 1, 0xe8ebf3).setOrigin(0, 0);
     this.foregroundBars = scene.add.graphics();
 
     this.backgroundLayer.add([this.background, this.floor]);
@@ -149,9 +149,9 @@ export class CageView {
     this.floor.setSize(width, floorHeight).setPosition(0, height - floorHeight);
 
     this.foregroundBars.clear();
-    this.foregroundBars.lineStyle(4, 0xadb2bf, 0.85);
+    this.foregroundBars.lineStyle(2, 0xcfd6e4, 0.75);
 
-    const spacing = 56;
+    const spacing = 64;
     for (let x = spacing; x < width; x += spacing) {
       this.foregroundBars.lineBetween(x, 0, x, height);
     }

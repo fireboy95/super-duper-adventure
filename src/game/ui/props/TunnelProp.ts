@@ -17,9 +17,9 @@ export class TunnelProp implements CageInteractiveProp {
     this.scene = scene;
     this.id = id;
 
-    const tunnelBody = scene.add.rectangle(0, 0, width, height, color, 1).setStrokeStyle(4, 0x5e3f22);
-    this.entryMarker = scene.add.triangle(-width * 0.35, -height * 0.52, 0, 12, 18, 0, 36, 12, 0x9be37c, 0.9);
-    this.exitMarker = scene.add.triangle(width * 0.35, -height * 0.52, 0, 12, 18, 0, 36, 12, 0x9be37c, 0.45);
+    const tunnelBody = scene.add.rectangle(0, 0, width, height, color, 0.14).setStrokeStyle(2, color, 0.85);
+    this.entryMarker = scene.add.triangle(-width * 0.35, -height * 0.52, 0, 10, 14, 0, 28, 10, color, 0.8);
+    this.exitMarker = scene.add.triangle(width * 0.35, -height * 0.52, 0, 10, 14, 0, 28, 10, color, 0.35);
 
     this.container = scene.add.container(x, y, [tunnelBody, this.entryMarker, this.exitMarker]);
     this.container.setSize(width, height);
@@ -32,8 +32,8 @@ export class TunnelProp implements CageInteractiveProp {
   }
 
   public setActive(active: boolean): void {
-    this.entryMarker.setAlpha(active ? 1 : 0.65);
-    this.exitMarker.setAlpha(active ? 1 : 0.45);
+    this.entryMarker.setAlpha(active ? 1 : 0.55);
+    this.exitMarker.setAlpha(active ? 0.8 : 0.3);
   }
 
   public playEffect(name: PropEffectName): void {
@@ -41,7 +41,7 @@ export class TunnelProp implements CageInteractiveProp {
       this.scene.tweens.add({
         targets: [this.entryMarker, this.exitMarker],
         alpha: 1,
-        duration: 120,
+        duration: 140,
         yoyo: true,
         repeat: 2,
       });
@@ -60,7 +60,7 @@ export class TunnelProp implements CageInteractiveProp {
     if (name === 'cooldown') {
       this.scene.tweens.add({
         targets: this.container,
-        alpha: 0.6,
+        alpha: 0.4,
         duration: 160,
         yoyo: true,
       });
