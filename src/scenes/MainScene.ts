@@ -2,13 +2,14 @@ import Phaser from 'phaser';
 import { defaultPromptScript } from '../game/prompt/defaultPromptScript';
 import { PromptEngine } from '../game/prompt/PromptEngine';
 import { type PromptChoice, type PromptKeyword } from '../game/prompt/types';
+import { DEFAULT_DIMENSION_ID, getDimensionById, type DimensionId } from '../game/dimensions';
 import { AudioSystem } from '../game/systems/AudioSystem';
 import { HamsterBehaviorDirector } from '../game/systems/HamsterBehaviorDirector';
 import { CageView } from '../game/ui/CageView';
 import { HamsterActor } from '../game/ui/HamsterActor';
 import { PromptDialogueOverlay } from '../game/ui/PromptDialogueOverlay';
 import { getChoiceMoodModifier, getKeywordMoodModifier } from '../game/ui/hamsterMoodMap';
-import { UI_INPUT_BLOCKED_EVENT } from './UiScene';
+import { DIMENSION_CHANGED_EVENT, UI_INPUT_BLOCKED_EVENT } from './UiScene';
 
 export class MainScene extends Phaser.Scene {
   private audioSystem?: AudioSystem;
@@ -18,6 +19,7 @@ export class MainScene extends Phaser.Scene {
   private hamster?: HamsterActor;
   private hamsterBehaviorDirector?: HamsterBehaviorDirector;
   private hamsterBehaviorTimer?: Phaser.Time.TimerEvent;
+  private dimensionLabel?: Phaser.GameObjects.Text;
   private isUiInputBlocked = false;
 
   private readonly propLayoutRatios = {
@@ -34,7 +36,16 @@ export class MainScene extends Phaser.Scene {
 
   create(): void {
     this.game.events.on(UI_INPUT_BLOCKED_EVENT, this.handleUiInputBlockedChange, this);
-    this.cameras.main.setBackgroundColor('#111625');
+
+    this.dimensionLabel = this.add
+      .text(16, 16, '', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '14px',
+        color: '#bfe3ff',
+      })
+      .setOrigin(0, 0)
+      .setDepth(24)
+      .setScrollFactor(0);
 
     this.audioSystem = new AudioSystem(this);
     this.promptEngine = new PromptEngine(defaultPromptScript);
@@ -120,7 +131,18 @@ export class MainScene extends Phaser.Scene {
     });
 
     this.refreshPromptView();
+    const dimensionId = this.registry.get('activeDimension') as DimensionId | undefined;
+    this.applyDimensionTheme(dimensionId ?? DEFAULT_DIMENSION_ID);
+
+    this.game.events.on(DIMENSION_CHANGED_EVENT, this.applyDimensionTheme, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
+  }
+
+  private applyDimensionTheme(dimensionId: DimensionId): void {
+    const dimension = getDimensionById(dimensionId);
+    this.cameras.main.setBackgroundColor(dimension.bgColor);
+    this.dimensionLabel?.setText(`${dimension.icon} ${dimension.label} Dimension`);
+    this.dimensionLabel?.setColor(dimension.accentColor);
   }
 
   private handleAdvance(): void {
@@ -267,6 +289,7 @@ export class MainScene extends Phaser.Scene {
 
   private shutdown(): void {
     this.game.events.off(UI_INPUT_BLOCKED_EVENT, this.handleUiInputBlockedChange, this);
+    this.game.events.off(DIMENSION_CHANGED_EVENT, this.applyDimensionTheme, this);
     this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
     this.isUiInputBlocked = false;
     this.hamsterBehaviorTimer?.remove();

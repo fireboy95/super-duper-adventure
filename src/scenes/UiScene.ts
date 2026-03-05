@@ -1,8 +1,10 @@
 import Phaser from 'phaser';
+import { DEFAULT_DIMENSION_ID, DIMENSIONS, type DimensionId } from '../game/dimensions';
 import { LayeredIconMenu, type LayeredMenuNode } from '../game/ui/LayeredIconMenu';
 
 const ROUTE_EVENT = 'ui:navigate';
 export const UI_INPUT_BLOCKED_EVENT = 'ui:input-blocked';
+export const DIMENSION_CHANGED_EVENT = 'ui:dimension-changed';
 const DEBUG_TEXTURE_KEY = 'debug-pane-texture';
 const MAX_LOG_LINES = 120;
 const DEFAULT_COMMAND_PLACEHOLDER = 'Type JavaScript and press Enter';
@@ -74,6 +76,9 @@ export class UiScene extends Phaser.Scene {
   }
 
   create(): void {
+    const activeDimension = this.registry.get('activeDimension') as DimensionId | undefined;
+    this.registry.set('activeDimension', activeDimension ?? DEFAULT_DIMENSION_ID);
+
     this.layeredMenu = new LayeredIconMenu(this, this.buildMenuDefinition());
     this.initializeDebugTools();
 
@@ -1126,6 +1131,19 @@ export class UiScene extends Phaser.Scene {
         ],
       },
       {
+        id: 'dimensions',
+        icon: '🌀',
+        label: 'Dimensions',
+        color: 0x00a6fb,
+        children: DIMENSIONS.map((dimension) => ({
+          id: `dimension-${dimension.id}`,
+          icon: dimension.icon,
+          label: dimension.label,
+          color: Phaser.Display.Color.HexStringToColor(dimension.accentColor).color,
+          onSelect: () => this.setDimension(dimension.id),
+        })),
+      },
+      {
         id: 'settings',
         icon: '⚙️',
         label: 'Settings',
@@ -1147,6 +1165,12 @@ export class UiScene extends Phaser.Scene {
 
   private navigate(sceneKey: string): void {
     this.game.events.emit(ROUTE_EVENT, sceneKey);
+  }
+
+  private setDimension(dimensionId: DimensionId): void {
+    this.registry.set('activeDimension', dimensionId);
+    this.game.events.emit(DIMENSION_CHANGED_EVENT, dimensionId);
+    this.appendLog(`[dimension] Switched to ${dimensionId}.`);
   }
 }
 export { ROUTE_EVENT };
