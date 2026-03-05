@@ -1,20 +1,22 @@
 import Phaser from 'phaser';
+import { DEFAULT_DIMENSION_ID, getDimensionById, type DimensionId } from '../game/dimensions';
+import { DIMENSION_CHANGED_EVENT } from './UiScene';
 
 export class ContentScene extends Phaser.Scene {
   private readonly heading: string;
   private readonly subtitle: string;
-  private readonly bgColor: string;
+  private readonly baseBgColor: string;
+  private subtitleText?: Phaser.GameObjects.Text;
+  private dimensionTagText?: Phaser.GameObjects.Text;
 
   constructor(key: string, heading: string, subtitle: string, bgColor: string) {
     super(key);
     this.heading = heading;
     this.subtitle = subtitle;
-    this.bgColor = bgColor;
+    this.baseBgColor = bgColor;
   }
 
   create(): void {
-    this.cameras.main.setBackgroundColor(this.bgColor);
-
     this.add
       .text(this.scale.width / 2, this.scale.height / 2 - 16, this.heading, {
         fontFamily: 'Arial, sans-serif',
@@ -23,7 +25,7 @@ export class ContentScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    this.add
+    this.subtitleText = this.add
       .text(this.scale.width / 2, this.scale.height / 2 + 22, this.subtitle, {
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',
@@ -32,6 +34,32 @@ export class ContentScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setWordWrapWidth(Math.min(620, this.scale.width - 32));
+
+    this.dimensionTagText = this.add
+      .text(this.scale.width / 2, this.scale.height / 2 - 64, '', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '14px',
+        color: '#d6ebff',
+      })
+      .setOrigin(0.5);
+
+    const dimensionId = this.registry.get('activeDimension') as DimensionId | undefined;
+    this.applyDimensionTheme(dimensionId ?? DEFAULT_DIMENSION_ID);
+
+    this.game.events.on(DIMENSION_CHANGED_EVENT, this.applyDimensionTheme, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
+  }
+
+  private shutdown(): void {
+    this.game.events.off(DIMENSION_CHANGED_EVENT, this.applyDimensionTheme, this);
+  }
+
+  private applyDimensionTheme(dimensionId: DimensionId): void {
+    const dimension = getDimensionById(dimensionId);
+    this.cameras.main.setBackgroundColor(dimension.bgColor || this.baseBgColor);
+    this.dimensionTagText?.setText(`${dimension.icon} ${dimension.label} Dimension`);
+    this.dimensionTagText?.setColor(dimension.accentColor);
+    this.subtitleText?.setText(`${this.subtitle}\nCurrent dimension: ${dimension.description}`);
   }
 }
 
